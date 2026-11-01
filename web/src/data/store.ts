@@ -4,6 +4,7 @@
 
 import { useSyncExternalStore } from 'react';
 import { normalizeLayout } from './layout';
+import { normalizeGuide } from './guide';
 import { latestKg, migrateProgram } from './plan';
 import { createSeed, STATE_VERSION } from './seed';
 import type { AppState } from './types';
@@ -34,7 +35,14 @@ function repair(s: AppState): AppState {
     // Workspaces saved before InBody tracking get the demo scans so the page isn't empty.
     ...(s.inbody ? {} : (({ inbody, inbodyRequests }) => ({ inbody, inbodyRequests }))(createSeed())),
     metricEntries: s.metricEntries ?? [],
-    trainees: s.trainees.map((t) => (t.program ? { ...t, program: migrateProgram(t.program, t, latestKg(s.weights, t.id)) } : t)),
+    templates: s.templates.map((x) => ({ ...x, guide: normalizeGuide(x.guide) })),
+    trainees: s.trainees.map((t) => {
+      if (!t.program) return t;
+      const p = migrateProgram(t.program, t, latestKg(s.weights, t.id));
+      // Programs assigned before guides existed pick up their template's guide.
+      const guide = p.guide ?? s.templates.find((x) => x.id === p.templateId)?.guide;
+      return { ...t, program: { ...p, guide: guide ? normalizeGuide(guide, t.goalType) : undefined } };
+    }),
   };
 }
 

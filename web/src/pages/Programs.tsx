@@ -1,19 +1,16 @@
 import { useMemo, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
-import { assignTemplate, createTemplate, deleteTemplate, duplicateTemplate, updateTemplate } from '../data/actions';
+import { assignTemplate, deleteTemplate, duplicateTemplate, updateTemplate } from '../data/actions';
 import { fullName, isActiveStatus } from '../data/selectors';
-import { useAppState } from '../data/store';
+import { getState, useAppState } from '../data/store';
 import type { Template } from '../data/types';
 import { Icon } from '../components/Icon';
-import { ProgramEditor } from '../components/ProgramEditor';
 import { Avatar, Empty, Modal, useToast } from '../components/ui';
 import { useT } from '../i18n';
-import type { StringKey } from '../i18n/strings';
 import { addDays, fmtAgo, startOfWeek, todayISO } from '../lib/dates';
+import { applyGuide, BasicsStep, InstructionsStep, NutritionStep, RecoveryStep, TrainingStep, type GuidePatch } from './programs/sections';
 
-// Stored values stay in English; labels are translated.
-const LOAD_METHODS: [string, StringKey][] = [['RPE + kg target', 'tpl.load.rpe'], ['% of 1RM', 'tpl.load.pct'], ['Fixed kg', 'tpl.load.fixed']];
-const PROGRESSIONS: [string, StringKey][] = [['Double progression', 'tpl.prog.double'], ['Linear +2.5 kg / week', 'tpl.prog.linear'], ['Wave loading', 'tpl.prog.wave'], ['Manual', 'tpl.prog.manual']];
+const EDIT_TABS = ['basics', 'training', 'nutrition', 'recovery', 'instructions'] as const;
 
 export function ProgramsPage() {
   const { id } = useParams();
@@ -22,6 +19,7 @@ export function ProgramsPage() {
   const navigate = useNavigate();
   const toast = useToast();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [tab, setTab] = useState<(typeof EDIT_TABS)[number]>('basics');
 
   const usage = useMemo(() => {
     const m = new Map<string, number>();
@@ -32,6 +30,8 @@ export function ProgramsPage() {
   if (!id && state.templates[0]) return <Navigate to={`/programs/${state.templates[0].id}`} replace />;
   const tpl = state.templates.find((x) => x.id === id);
   const set = (patch: Partial<Template>) => tpl && updateTemplate(tpl.id, patch);
+  // Read the saved template at call time so quick successive edits all land.
+  const setGuide = (patch: GuidePatch) => { const cur = tpl && getState().templates.find((x) => x.id === tpl.id); if (cur) updateTemplate(cur.id, { guide: applyGuide(cur.guide, patch) }); };
 
   return (
     <>
@@ -40,7 +40,7 @@ export function ProgramsPage() {
           <h1 className="page-title">{t('tpl.title')}</h1>
           <p className="muted">{t('tpl.subtitle')}</p>
         </div>
-        <button type="button" className="btn primary" onClick={() => { const nid = createTemplate(t('tpl.untitled'), t('editor.dayN', { n: 1 }), t('editor.newExercise')); navigate(`/programs/${nid}`); toast(t('tpl.created')); }}>
+        <button type="button" className="btn primary" onClick={() => navigate('/programs/new')}>
           <Icon name="plus" size={16} strokeWidth={2} />{t('tpl.new')}
         </button>
       </header>
@@ -71,36 +71,30 @@ export function ProgramsPage() {
                 <div className="row wrap" style={{ justifyContent: 'space-between' }}>
                   <div className="stack grow" style={{ gap: 4 }}>
                     <span className="xs faint">{t('tpl.autosaved', { ago: fmtAgo(tpl.updatedAt) })}</span>
-                    <input className="input" aria-label={t('tpl.name')} style={{ fontSize: 18, fontWeight: 600, height: 44, maxWidth: 480 }} value={tpl.name} onChange={(e) => set({ name: e.target.value })} />
+                    <span style={{ fontSize: 20, fontWeight: 650, letterSpacing: '-0.02em' }}>{tpl.name || t('tb.untitled')}</span>
+                    <span className="row wrap small muted" style={{ gap: 6 }}>
+                      <span className="chip accent">{t(`goal.${tpl.guide.goal}`)}</span>
+                      <span>{t('tpl.nWeeks', { n: tpl.weeks })} · {t('tb.nDays', { n: tpl.days.length })} · {tpl.guide.calories ? `${tpl.guide.calories.toLocaleString('en')} kcal` : '—'} · {t('tb.sleepShort', { n: tpl.guide.sleepH ?? '—' })} · {t('tb.stepsShort', { n: tpl.guide.steps?.toLocaleString('en') ?? '—' })}</span>
+                    </span>
                   </div>
                   <div className="row">
                     <button type="button" className="btn sm" onClick={() => { const nid = duplicateTemplate(tpl.id); if (nid) { navigate(`/programs/${nid}`); toast(t('tpl.duplicated')); } }}><Icon name="copy" size={14} />{t('tpl.duplicate')}</button>
                     <button type="button" className="btn sm danger" onClick={() => setConfirmDelete(true)}><Icon name="trash" size={14} />{t('common.delete')}</button>
                   </div>
                 </div>
-                <label className="field">{t('tpl.summary')}<input className="input" placeholder={t('tpl.summaryPlaceholder')} value={tpl.summary} onChange={(e) => set({ summary: e.target.value })} /></label>
-                <div className="form-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}>
-                  <label className="field">{t('tpl.length')}
-                    <select className="select" value={tpl.weeks} onChange={(e) => set({ weeks: Number(e.target.value) })}>
-                      {[4, 6, 8, 10, 12, 16].map((n) => <option key={n} value={n}>{t('tpl.nWeeks', { n })}</option>)}
-                    </select>
-                  </label>
-                  <label className="field">{t('tpl.loadMethod')}
-                    <select className="select" value={tpl.loadMethod} onChange={(e) => set({ loadMethod: e.target.value })}>
-                      {LOAD_METHODS.map(([v, k]) => <option key={v} value={v}>{t(k)}</option>)}
-                    </select>
-                  </label>
-                  <label className="field">{t('tpl.progression')}
-                    <select className="select" value={tpl.progression} onChange={(e) => set({ progression: e.target.value })}>
-                      {PROGRESSIONS.map(([v, k]) => <option key={v} value={v}>{t(k)}</option>)}
-                    </select>
-                  </label>
-                  <label className="field">{t('tpl.tags')} <span className="hint">{t('tpl.tagsHint')}</span>
-                    <input className="input" value={tpl.tags.join(', ')} onChange={(e) => set({ tags: e.target.value.split(/[,،]/).map((s) => s.trim()).filter(Boolean) })} />
-                  </label>
-                </div>
               </div>
-              <ProgramEditor key={tpl.id} days={tpl.days} editing onChange={(days) => set({ days })} />
+              <div className="tabs" role="tablist" aria-label={t('tb.sections')} style={{ borderTop: 0 }}>
+                {EDIT_TABS.map((x) => (
+                  <button key={x} type="button" role="tab" aria-selected={tab === x} className={`tab${tab === x ? ' on' : ''}`} onClick={() => setTab(x)}>{t(`tb.step.${x}`)}</button>
+                ))}
+              </div>
+              <div className="tb-step-body" style={{ borderTop: '1px solid var(--divider)' }}>
+                {tab === 'basics' && <BasicsStep tpl={tpl} set={set} setGuide={setGuide} />}
+                {tab === 'training' && <TrainingStep key={tpl.id} tpl={tpl} set={set} setGuide={setGuide} />}
+                {tab === 'nutrition' && <NutritionStep tpl={tpl} set={set} setGuide={setGuide} />}
+                {tab === 'recovery' && <RecoveryStep tpl={tpl} set={set} setGuide={setGuide} />}
+                {tab === 'instructions' && <InstructionsStep tpl={tpl} set={set} setGuide={setGuide} />}
+              </div>
             </section>
 
             <AssignPanel key={tpl.id} tpl={tpl} />

@@ -128,6 +128,9 @@ export function TodayScreen() {
           <div className="ta-card-head"><span className="ta-card-title">{t('ta.today.targets', { w: wi + 1 })}</span></div>
           <div className="ta-card-pad">
             <div className="ta-targets">{targetTiles(targets, t)}</div>
+            {p?.guide && (p.guide.proteinG || p.guide.waterL) && (
+              <span className="small muted">{t('ta.today.macros', { p: p.guide.proteinG ?? '—', c: p.guide.carbsG ?? '—', f: p.guide.fatG ?? '—', w: p.guide.waterL ?? '—' })}</span>
+            )}
             {targets.focus && (
               <div className="stack" style={{ gap: 4 }}>
                 <span className="ta-label">{t('ta.today.focus')}</span>

@@ -6,10 +6,12 @@ import { ToastProvider } from './components/ui';
 import { LangProvider, useI18n } from './i18n';
 import { BillingPage } from './pages/Billing';
 import { CalendarPage } from './pages/Calendar';
+import { HistoryPage } from './pages/History';
 import { MessagesPage } from './pages/Messages';
 import { NewTraineePage } from './pages/NewTrainee';
 import { OverviewPage } from './pages/Overview';
 import { ProgramsPage } from './pages/Programs';
+import { TemplateWizard } from './pages/programs/TemplateWizard';
 import { SettingsPage } from './pages/Settings';
 import { TraineePage } from './pages/Trainee';
 import { TraineesPage } from './pages/Trainees';
@@ -44,9 +46,11 @@ function AppRoutes() {
         <Route path="trainees/new" element={<NewTraineePage />} />
         <Route path="trainees/:id" element={<TraineePage />} />
         <Route path="programs" element={<ProgramsPage />} />
+        <Route path="programs/new" element={<TemplateWizard />} />
         <Route path="programs/:id" element={<ProgramsPage />} />
         <Route path="messages" element={<MessagesPage />} />
         <Route path="messages/:id" element={<MessagesPage />} />
+        <Route path="history" element={<HistoryPage />} />
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="billing" element={<BillingPage />} />
         <Route path="settings" element={<SettingsPage />} />

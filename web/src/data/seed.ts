@@ -147,10 +147,10 @@ const CHECKIN_COMMENTS = [
 
 function buildProgram(tpl: Template, startDate: string, p: Profile): AssignedProgram {
   // Targets follow the profile's weight trend; ids are fixed so the seed stays deterministic.
-  const plan = buildPlan(tpl.days, tpl.weeks, { goalType: p.goalType, startKg: p.startKg, kgPerWeek: p.kgPerWeek })
+  const plan = buildPlan(tpl.days, tpl.weeks, { goalType: p.goalType, startKg: p.startKg, kgPerWeek: p.kgPerWeek }, tpl.guide)
     .map((w, wi) => ({ ...w, id: `w${wi + 1}`, days: w.days.map((d, di) => ({ ...d, id: tpl.days[di].id, exercises: d.exercises.map((e, ei) => ({ ...e, id: tpl.days[di].exercises[ei].id })) })) }));
   plan[0].targets.focus = 'Technique and starting loads. Leave 2–3 reps in the tank.';
-  return { templateId: tpl.id, name: tpl.name, startDate, weeks: plan.length, plan };
+  return { templateId: tpl.id, name: tpl.name, startDate, weeks: plan.length, plan, guide: structuredClone(tpl.guide) };
 }
 
 export function createSeed(): AppState {

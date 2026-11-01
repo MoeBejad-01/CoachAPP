@@ -7,13 +7,15 @@ import { shown } from '../../data/layout';
 import { cloneDays, weekIndex, weekRange } from '../../data/plan';
 import { slotsFor } from '../../data/selectors';
 import { useAppState } from '../../data/store';
-import type { AppState, Exercise, ProgramDay, ProgramWeek, TargetId, Trainee, WeekTargets, WorkoutLog } from '../../data/types';
+import { defaultGuide } from '../../data/guide';
+import type { AppState, Exercise, ProgramDay, ProgramGuide, ProgramWeek, TargetId, Trainee, WeekTargets, WorkoutLog } from '../../data/types';
 import { Icon } from '../../components/Icon';
 import { DayTable } from '../../components/ProgramEditor';
-import { Empty, useToast } from '../../components/ui';
+import { Empty, Modal, useToast } from '../../components/ui';
 import { useT, type T } from '../../i18n';
 import { addDays, dayOfWeek, fmtDay, fmtDow, fmtRelativeDay, fmtShort, todayISO } from '../../lib/dates';
 import { e1rm, fmtKg, uid } from '../../lib/util';
+import { applyGuide, GuideSummary, InstructionsStep, NutritionStep, RecoveryStep, type GuidePatch } from '../programs/sections';
 import { ChangeProgramModal } from './modals';
 import { SetChips } from './sections';
 
@@ -184,6 +186,8 @@ export function ProgramTab({ trainee, logs }: { trainee: Trainee; logs: WorkoutL
         </div>
       )}
 
+      <GuideStrip trainee={trainee} />
+
       {/* Training days */}
       <div className="row wrap" style={{ padding: '16px 20px 8px', justifyContent: 'space-between' }}>
         <span className="section-label">{t('weeks.days', { n: wk.days.length })}</span>
@@ -220,6 +224,65 @@ export function ProgramTab({ trainee, logs }: { trainee: Trainee; logs: WorkoutL
       )}
       {changing && <ChangeProgramModal trainee={trainee} onClose={() => setChanging(false)} />}
     </section>
+  );
+}
+
+/** Program-wide nutrition, recovery and instructions, with an editor in a dialog. */
+function GuideStrip({ trainee }: { trainee: Trainee }) {
+  const t = useT();
+  const toast = useToast();
+  const p = trainee.program!;
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const g = p.guide;
+  if (!g) {
+    return (
+      <div className="guide-strip">
+        <span className="small muted">{t('tb.noGuide')}</span>
+        <button type="button" className="btn sm" onClick={() => { updateTraineeProgram(trainee.id, { ...p, guide: defaultGuide(trainee.goalType) }); setEditing(true); }}>{t('tb.addGuide')}</button>
+      </div>
+    );
+  }
+  const items: [string, string][] = [
+    [t('tb.calories'), g.calories ? `${g.calories.toLocaleString('en')} kcal` : '—'],
+    [t('tb.macrosShort'), `${g.proteinG ?? '—'}/${g.carbsG ?? '—'}/${g.fatG ?? '—'} g`],
+    [t('tb.water'), g.waterL ? `${g.waterL} L` : '—'],
+    [t('tb.cardioTitle'), g.cardioPerWeek ? t('tb.cardioSummary', { n: g.cardioPerWeek, m: g.cardioMin ?? '—' }) : t('tb.none')],
+    [t('tb.sessionMin'), t('common.minutes', { n: g.sessionMin })],
+  ];
+  return (
+    <div className="guide-wrap">
+      <div className="guide-strip">
+        <span className="section-label">{t('tb.guidelines')}</span>
+        <div className="row wrap" style={{ gap: 18, flex: 1 }}>
+          {items.map(([k, v]) => <span key={k} className="stack" style={{ gap: 1 }}><span className="xs faint">{k}</span><span className="small mono" dir="ltr" style={{ fontWeight: 600, textAlign: 'start' }}>{v}</span></span>)}
+        </div>
+        <div className="row" style={{ gap: 6 }}>
+          <button type="button" className="btn sm ghost" aria-expanded={open} onClick={() => setOpen((x) => !x)}>{open ? t('tb.hideDetails') : t('tb.showDetails')}<Icon name={open ? 'up' : 'down'} size={14} /></button>
+          <button type="button" className="btn sm" onClick={() => setEditing(true)}><Icon name="edit" size={14} />{t('builder.edit')}</button>
+        </div>
+      </div>
+      {open && <div style={{ padding: '0 20px 16px' }}><GuideSummary guide={g} /></div>}
+      {editing && <GuideModal guide={g} onClose={() => setEditing(false)} onSave={(guide) => { updateTraineeProgram(trainee.id, { ...p, guide }); toast(t('tb.guideSaved', { name: trainee.firstName })); setEditing(false); }} />}
+    </div>
+  );
+}
+
+function GuideModal({ guide, onClose, onSave }: { guide: ProgramGuide; onClose: () => void; onSave: (g: ProgramGuide) => void }) {
+  const t = useT();
+  const [g, setG] = useState(guide);
+  const [tab, setTab] = useState<'nutrition' | 'recovery' | 'instructions'>('nutrition');
+  // The guide sections expect a template-shaped value; only `guide` and `weeks` are read.
+  const props = { tpl: { name: '', summary: '', tags: [], weeks: 16, loadMethod: '', progression: '', days: [], guide: g }, set: () => {}, setGuide: (patch: GuidePatch) => setG((x) => applyGuide(x, patch)) };
+  return (
+    <Modal wide title={t('tb.editGuide')} onClose={onClose} footer={<><button type="button" className="btn" onClick={onClose}>{t('common.cancel')}</button><button type="button" className="btn primary" onClick={() => onSave(g)}>{t('common.saveChanges')}</button></>}>
+      <div className="seg" role="tablist">
+        {(['nutrition', 'recovery', 'instructions'] as const).map((x) => <button key={x} type="button" role="tab" aria-selected={tab === x} className={tab === x ? 'on' : ''} onClick={() => setTab(x)}>{t(`tb.step.${x}`)}</button>)}
+      </div>
+      {tab === 'nutrition' && <NutritionStep {...props} />}
+      {tab === 'recovery' && <RecoveryStep {...props} />}
+      {tab === 'instructions' && <InstructionsStep {...props} />}
+    </Modal>
   );
 }
 

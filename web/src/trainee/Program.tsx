@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { weekIndex, weekRange } from '../data/plan';
 import { slotsFor } from '../data/selectors';
+import type { ProgramGuide } from '../data/types';
 import { Icon } from '../components/Icon';
 import { useT } from '../i18n';
 import { addDays, dayOfWeek, fmtDow, fmtShort, todayISO } from '../lib/dates';
@@ -44,6 +45,8 @@ export function ProgramScreen() {
           {wk.targets.focus && <p style={{ lineHeight: 1.5, color: 'var(--ink-2)', fontSize: 14 }}>{wk.targets.focus}</p>}
         </div>
       </section>
+
+      {p.guide && <GuideCard guide={p.guide} />}
 
       {wk.days.map((day, i) => {
         const date = dateOf(i);
@@ -89,5 +92,47 @@ export function ProgramScreen() {
         );
       })}
     </TabScreen>
+  );
+}
+
+/** The coach's program-wide guidance: food, recovery, cardio and how to train. */
+export function GuideCard({ guide: g }: { guide: ProgramGuide }) {
+  const t = useT();
+  const [open, setOpen] = useState(false);
+  const rows: [string, string][] = [
+    [t('tb.macrosShort'), `${g.proteinG ?? '—'} / ${g.carbsG ?? '—'} / ${g.fatG ?? '—'} g`],
+    ...(g.restCalories ? [[t('tb.restCalories'), `${g.restCalories.toLocaleString('en')} kcal`] as [string, string]] : []),
+    [t('tb.water'), g.waterL ? `${g.waterL} L` : '—'],
+    [t('tb.meals'), g.meals ? String(g.meals) : '—'],
+    [t('tb.cardioTitle'), g.cardioPerWeek ? t('tb.cardioSummary', { n: g.cardioPerWeek, m: g.cardioMin ?? '—' }) : t('tb.none')],
+  ];
+  const texts: [string, string][] = ([
+    [t('tb.instructionsTitle'), g.instructions], [t('tb.warmupTitle'), g.warmup], [t('tb.nutritionNotes'), g.nutritionNotes],
+    [t('tb.cardioType'), g.cardioPerWeek ? g.cardioType : ''], [t('tb.restDayTitle'), g.restDayNotes],
+  ] as [string, string][]).filter(([, v]) => v.trim());
+  return (
+    <section className="ta-card">
+      <button type="button" className="ta-row" style={{ borderTop: 0 }} aria-expanded={open} onClick={() => setOpen((x) => !x)}>
+        <span className="ta-task-icon"><Icon name="clipboard" size={17} /></span>
+        <span className="stack grow" style={{ gap: 2 }}>
+          <span style={{ fontWeight: 600 }}>{t('ta.guide.title')}</span>
+          <span className="small muted">{t('ta.guide.sub')}</span>
+        </span>
+        <Icon name={open ? 'up' : 'down'} size={16} />
+      </button>
+      {open && (
+        <div className="ta-card-pad" style={{ paddingTop: 4 }}>
+          <div className="ta-targets">
+            {rows.map(([k, v]) => <div key={k} className="ta-target"><span className="ta-label">{k}</span><span className="ta-target-v" style={{ fontSize: 14 }} dir="auto">{v}</span></div>)}
+          </div>
+          {texts.map(([k, v]) => (
+            <div key={k} className="stack" style={{ gap: 4 }}>
+              <span className="ta-label">{k}</span>
+              <p style={{ lineHeight: 1.5, fontSize: 14, whiteSpace: 'pre-line' }}>{v}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }

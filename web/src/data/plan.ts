@@ -3,7 +3,7 @@
 
 import { addDays, daysBetween } from '../lib/dates';
 import { uid } from '../lib/util';
-import type { AssignedProgram, GoalType, ProgramDay, ProgramWeek, Trainee, WeekTargets } from './types';
+import type { AssignedProgram, GoalType, ProgramDay, ProgramGuide, ProgramWeek, Trainee, WeekTargets } from './types';
 
 const CALORIES: Record<GoalType, number> = { muscle: 2700, strength: 2800, fatloss: 1900, sport: 2600, rehab: 2300, health: 2200 };
 const PROTEIN: Record<GoalType, number> = { muscle: 160, strength: 160, fatloss: 140, sport: 140, rehab: 130, health: 120 };
@@ -31,8 +31,15 @@ export function defaultTargets(basis: PlanBasis, weekIdx: number): WeekTargets {
   };
 }
 
-export function buildPlan(days: ProgramDay[], weeks: number, basis: PlanBasis): ProgramWeek[] {
-  return Array.from({ length: Math.max(1, weeks) }, (_, i) => ({ id: uid('w'), targets: defaultTargets(basis, i), days: cloneDays(days) }));
+/** Weekly targets start from the template's guide when there is one; body weight follows the trainee. */
+export function buildPlan(days: ProgramDay[], weeks: number, basis: PlanBasis, guide?: ProgramGuide): ProgramWeek[] {
+  return Array.from({ length: Math.max(1, weeks) }, (_, i) => {
+    const base = defaultTargets(basis, i);
+    const targets: WeekTargets = guide
+      ? { ...base, calories: guide.calories ?? base.calories, proteinG: guide.proteinG ?? base.proteinG, sleepH: guide.sleepH ?? base.sleepH, steps: guide.steps ?? base.steps, focus: guide.deloadWeek === i + 1 ? 'Deload week: same exercises, about 40% fewer sets and lighter loads.' : '' }
+      : base;
+    return { id: uid('w'), targets, days: cloneDays(days) };
+  });
 }
 
 /** Basis for targets from a trainee's goals (a kg goal sets the weight trend; otherwise hold current weight). */

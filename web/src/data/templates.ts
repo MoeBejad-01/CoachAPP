@@ -1,4 +1,8 @@
-import type { ProgramDay, Template } from './types';
+import { defaultGuide } from './guide';
+import type { Equipment, GoalType, Level, ProgramDay, ProgramGuide, Template } from './types';
+
+const g = (goal: GoalType, level: Level, sessionMin: number, equipment: Equipment[], rest: Partial<ProgramGuide>): ProgramGuide =>
+  ({ ...defaultGuide(goal), level, sessionMin, equipment, ...rest });
 
 type Row = [name: string, sets: number, reps: string, intensity: string, rest: string, cue?: string];
 
@@ -28,6 +32,14 @@ export function seedTemplates(updatedAt: string): Template[] {
       weeks: 12,
       loadMethod: 'RPE + kg target',
       progression: 'Double progression',
+      guide: g('muscle', 'intermediate', 60, ['gym'], {
+        cardioPerWeek: 2, cardioMin: 20, cardioType: 'Incline walk or bike, easy pace',
+        nutritionNotes: 'Small surplus. Hit protein every day; most carbs around training. One portion of fruit or veg with each meal.',
+        restDayNotes: 'Walk, stretch hips and upper back for 10 minutes. Keep protein the same, carbs a little lower.',
+        instructions: 'Leave 1–2 reps in reserve on every set unless the sheet says otherwise. When you hit the top of the rep range on all sets, add 2.5 kg next time. Log every set in the app.',
+        warmup: '5 min easy cardio, then 2–3 ramp-up sets of the first lift.',
+        deloadWeek: 7,
+      }),
       updatedAt,
       days: [
         day('hyp-ua', 'Upper A', [
@@ -66,6 +78,14 @@ export function seedTemplates(updatedAt: string): Template[] {
       weeks: 8,
       loadMethod: '% of 1RM',
       progression: 'Linear +2.5 kg / week',
+      guide: g('strength', 'beginner', 60, ['barbell', 'gym'], {
+        cardioPerWeek: 1, cardioMin: 20, cardioType: 'Easy bike or walk',
+        nutritionNotes: 'Eat at maintenance or slightly above. Protein at every meal.',
+        restDayNotes: 'Light walk. No extra training needed.',
+        instructions: 'Add 2.5 kg to squat and deadlift each session while the bar moves well; 1–2.5 kg on presses. If you miss reps twice in a row, tell your coach.',
+        warmup: 'Empty bar x 10, then 3–4 ramp-up sets to your working weight.',
+        deloadWeek: null,
+      }),
       updatedAt,
       days: [
         day('str-d1', 'Day 1', [
@@ -93,6 +113,14 @@ export function seedTemplates(updatedAt: string): Template[] {
       weeks: 12,
       loadMethod: 'RPE + kg target',
       progression: 'Double progression',
+      guide: g('fatloss', 'all', 50, ['gym', 'dumbbells'], {
+        cardioPerWeek: 3, cardioMin: 25, cardioType: 'Intervals on bike or rower, or a brisk incline walk',
+        nutritionNotes: 'Moderate deficit. Fill half the plate with vegetables, keep protein high, limit liquid calories. Weekends count too.',
+        restDayNotes: 'Hit your steps. 200 kcal less on rest days.',
+        instructions: 'Keep rest periods short and stay moving. Strength first, conditioning after. Weigh in daily, we track the weekly average.',
+        warmup: '5 min row or bike, then dynamic mobility for hips and shoulders.',
+        deloadWeek: null,
+      }),
       updatedAt,
       days: [
         day('fat-s1', 'Strength A', [
@@ -123,6 +151,14 @@ export function seedTemplates(updatedAt: string): Template[] {
       weeks: 10,
       loadMethod: 'RPE + kg target',
       progression: 'Wave loading',
+      guide: g('sport', 'advanced', 75, ['gym', 'barbell'], {
+        cardioPerWeek: 2, cardioMin: 20, cardioType: 'Tempo runs or sprint intervals',
+        nutritionNotes: 'Fuel training: carbs before and after sessions, protein spread over 4 meals.',
+        restDayNotes: 'Mobility and soft tissue work. Sleep is the priority.',
+        instructions: 'Jumps and sprints are done fresh, at full intent, with full rest. Stop a set if speed drops off.',
+        warmup: '10 min RAMP warm-up: raise, activate, mobilise, then build up jumps.',
+        deloadWeek: 5,
+      }),
       updatedAt,
       days: [
         day('ath-p1', 'Speed & power A', [
@@ -154,6 +190,14 @@ export function seedTemplates(updatedAt: string): Template[] {
       weeks: 6,
       loadMethod: 'RPE + kg target',
       progression: 'Manual',
+      guide: g('rehab', 'beginner', 45, ['gym', 'bands'], {
+        cardioPerWeek: 3, cardioMin: 20, cardioType: 'Walking or easy bike',
+        nutritionNotes: 'Eat at maintenance. Enough protein helps tissue repair.',
+        restDayNotes: 'Daily walk and your mobility routine.',
+        instructions: 'Pain during exercise should stay at 3/10 or below and settle within 24 hours. If it does not, stop that exercise and message your coach.',
+        warmup: 'Mobility routine from your coach, then 1–2 light sets of each exercise.',
+        deloadWeek: null,
+      }),
       updatedAt,
       days: [
         day('rtt-1', 'Session 1', [
@@ -180,6 +224,14 @@ export function seedTemplates(updatedAt: string): Template[] {
       weeks: 8,
       loadMethod: '% of 1RM',
       progression: 'Manual',
+      guide: g('strength', 'advanced', 90, ['barbell', 'gym'], {
+        cardioPerWeek: 1, cardioMin: 20, cardioType: 'Easy walk',
+        nutritionNotes: 'Stay within 1 kg of your weight class. Keep meals familiar in the final two weeks.',
+        restDayNotes: 'Full rest or a light walk.',
+        instructions: 'Top sets follow the RPE on the sheet; back-off sets are 8–10% lighter. Film every top set for review.',
+        warmup: 'General warm-up, then the same ramp-up you will use on meet day.',
+        deloadWeek: 7,
+      }),
       updatedAt,
       days: [
         day('pl-sq', 'Squat', [

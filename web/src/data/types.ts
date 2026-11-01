@@ -21,6 +21,34 @@ export interface ProgramDay {
   exercises: Exercise[];
 }
 
+export type Level = 'beginner' | 'intermediate' | 'advanced' | 'all';
+export type Equipment = 'gym' | 'barbell' | 'dumbbells' | 'machines' | 'bands' | 'bodyweight' | 'home';
+
+/** Everything around the training: nutrition, recovery, activity and instructions. */
+export interface ProgramGuide {
+  goal: GoalType;
+  level: Level;
+  sessionMin: number;
+  equipment: Equipment[];
+  calories: number | null;
+  restCalories: number | null;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  waterL: number | null;
+  meals: number | null;
+  nutritionNotes: string;
+  sleepH: number | null;
+  steps: number | null;
+  cardioPerWeek: number | null;
+  cardioMin: number | null;
+  cardioType: string;
+  restDayNotes: string;
+  instructions: string;
+  warmup: string;
+  deloadWeek: number | null;
+}
+
 export interface Template {
   id: string;
   name: string;
@@ -30,6 +58,7 @@ export interface Template {
   loadMethod: string;
   progression: string;
   days: ProgramDay[];
+  guide: ProgramGuide;
   updatedAt: string;
 }
 
@@ -56,6 +85,8 @@ export interface AssignedProgram {
   /** Always equal to plan.length. */
   weeks: number;
   plan: ProgramWeek[];
+  /** Copied from the template on assignment; editable per trainee. */
+  guide?: ProgramGuide;
 }
 
 export interface Goal {
@@ -288,6 +319,8 @@ export interface Coach {
   email: string;
   businessName: string;
   currency: string;
+  /** Dashboard colour theme; missing means dark. */
+  theme?: 'light' | 'dark';
 }
 
 export interface AppState {

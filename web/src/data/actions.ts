@@ -65,7 +65,7 @@ export function setGoals(id: string, goals: Goal[]) {
 // ---------- Programs ----------
 
 export function programFromTemplate(tpl: Template, startDate: string, trainee: Pick<Trainee, 'goalType' | 'goals'>, currentKg: number | null = null): AssignedProgram {
-  return { templateId: tpl.id, name: tpl.name, startDate, weeks: tpl.weeks, plan: buildPlan(tpl.days, tpl.weeks, basisFor(trainee, tpl.weeks, currentKg)) };
+  return { templateId: tpl.id, name: tpl.name, startDate, weeks: tpl.weeks, plan: buildPlan(tpl.days, tpl.weeks, basisFor(trainee, tpl.weeks, currentKg), tpl.guide), guide: structuredClone(tpl.guide) };
 }
 
 export function assignTemplate(templateId: string, traineeIds: string[], startDate: string) {
@@ -93,15 +93,9 @@ export function blankDay(name: string, exerciseName?: string): ProgramDay {
 
 // ---------- Templates ----------
 
-export function createTemplate(name: string, firstDay: string, exerciseName: string): string {
+export function createTemplate(draft: Omit<Template, 'id' | 'updatedAt'>): string {
   const id = uid('tpl');
-  update((s) => ({
-    ...s,
-    templates: [
-      ...s.templates,
-      { id, name, summary: '', tags: [], weeks: 8, loadMethod: 'RPE + kg target', progression: 'Double progression', days: [blankDay(firstDay, exerciseName)], updatedAt: new Date().toISOString() },
-    ],
-  }));
+  update((s) => ({ ...s, templates: [...s.templates, { ...draft, id, updatedAt: new Date().toISOString() }] }));
   return id;
 }
 

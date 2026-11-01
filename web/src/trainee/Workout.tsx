@@ -135,6 +135,12 @@ export function WorkoutScreen() {
       footer={finishing ? undefined : <button type="button" className="btn primary" disabled={doneSets === 0} onClick={openFinish}>{t('ta.workout.finish')}</button>}
     >
       <div className="ta-progress"><span style={{ width: `${pct}%` }} /></div>
+      {p?.guide?.warmup && (
+        <section className="ta-note">
+          <span className="ta-label">{t('tb.warmupTitle')}</span>
+          <p style={{ lineHeight: 1.5, fontSize: 14 }}>{p.guide.warmup}</p>
+        </section>
+      )}
       {day.exercises.map((ex, i) => (
         <ExerciseCard key={ex.id} n={i + 1} ex={ex} s={draft.ex[ex.id]} last={lastEntry(ex.name)} onEx={(patch) => setEx(ex.id, patch)} onRow={(j, patch) => setRow(ex.id, j, patch)} />
       ))}
