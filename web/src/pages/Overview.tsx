@@ -96,7 +96,7 @@ export function OverviewPage() {
             <span className="sr-only">{t('common.searchTrainees')}</span>
             <input type="search" placeholder={t('common.searchTrainees')} value={query} onChange={(e) => { setQuery(e.target.value); if (e.target.value) pickFilter('all'); }} />
           </label>
-          <button type="button" className="btn" aria-pressed={customizing} onClick={() => setCustomizing((v) => !v)} style={customizing ? { background: '#f4f6fd', borderColor: 'var(--accent-line)' } : undefined}>
+          <button type="button" className="btn" aria-pressed={customizing} onClick={() => setCustomizing((v) => !v)} style={customizing ? { background: 'var(--selected)', borderColor: 'var(--accent-line)' } : undefined}>
             <Icon name="sliders" size={16} />{customizing ? t('common.done') : t('overview.customize')}
           </button>
           <Link to="/trainees/new" className="btn primary"><Icon name="plus" size={16} strokeWidth={2} />{t('common.newTrainee')}</Link>
@@ -132,12 +132,12 @@ export function OverviewPage() {
       {w.kpis && (
         <section className="kpis" aria-label={t('widget.kpis')}>
           <button type="button" className="kpi" onClick={() => pickFilter('active')}>
-            <span className="kpi-label">{t('kpi.active')}<span className="dot" style={{ background: '#1e7a4c' }} /></span>
+            <span className="kpi-label">{t('kpi.active')}<span className="dot" style={{ background: 'var(--ok)' }} /></span>
             <span className="kpi-value">{kpi.active}</span>
             <span className="kpi-sub"><span className="ok" style={{ fontWeight: 600 }} dir="ltr">+{kpi.newThisMonth}</span> {t('kpi.activeSub', { pct: kpi.share })}</span>
           </button>
           <button type="button" className="kpi" onClick={() => pickFilter('inactive')}>
-            <span className="kpi-label">{t('kpi.inactive')}<span className="dot" style={{ background: '#9a9ca3' }} /></span>
+            <span className="kpi-label">{t('kpi.inactive')}<span className="dot" style={{ background: 'var(--neutral)' }} /></span>
             <span className="kpi-value">{kpi.inactive}</span>
             <span className="kpi-sub"><span className="warn" style={{ fontWeight: 600 }}>{kpi.lapsed}</span> {t('kpi.inactiveSub')}</span>
           </button>
@@ -187,7 +187,7 @@ export function OverviewPage() {
                   return (
                     <div key={s.id} className="list-row" style={{ gap: 14 }}>
                       <span className="mono" style={{ fontSize: 13, width: 44 }}>{s.start.slice(11, 16)}</span>
-                      <span style={{ width: 2, alignSelf: 'stretch', background: s.location === 'In person' ? 'var(--accent)' : '#9a9ca3', borderRadius: 1 }} />
+                      <span style={{ width: 2, alignSelf: 'stretch', background: s.location === 'In person' ? 'var(--accent)' : 'var(--neutral)', borderRadius: 1 }} />
                       <div className="stack grow" style={{ gap: 2 }}>
                         {tr ? <Link to={`/trainees/${tr.id}`} style={{ color: 'var(--ink)', fontWeight: 500 }}>{fullName(tr)}</Link> : <span style={{ fontWeight: 500 }}>{s.title}</span>}
                         <span className="small muted">{tr ? s.title : t('common.minutes', { n: s.durationMin })}</span>
@@ -240,7 +240,7 @@ export function OverviewPage() {
                       return (
                         <div key={x.weekStart} style={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', gap: 6 }}>
                           <span className="mono" style={{ fontSize: 11.5, color: last ? 'var(--ink)' : 'var(--faint)' }}>{x.value}%</span>
-                          <span style={{ width: '100%', maxWidth: 36, height: `${Math.max(2, h)}%`, borderRadius: '4px 4px 0 0', background: last ? 'var(--accent)' : '#d7dceb' }} />
+                          <span style={{ width: '100%', maxWidth: 36, height: `${Math.max(2, h)}%`, borderRadius: '4px 4px 0 0', background: last ? 'var(--accent)' : 'var(--bar-soft)' }} />
                         </div>
                       );
                     })}

@@ -23,7 +23,7 @@ export function LineChart({ points, target, unit, label, height = 170 }: { point
       <div style={{ position: 'relative' }}>
         <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={height} preserveAspectRatio="none" role="img" aria-label={label}>
           <line x1="0" y1={H - 0.5} x2={W} y2={H - 0.5} stroke="var(--border)" />
-          {target !== undefined && <line x1="0" y1={sy(target)} x2={W} y2={sy(target)} stroke="#b9bcc4" strokeDasharray="4 5" vectorEffect="non-scaling-stroke" />}
+          {target !== undefined && <line x1="0" y1={sy(target)} x2={W} y2={sy(target)} stroke="var(--chart-ref)" strokeDasharray="4 5" vectorEffect="non-scaling-stroke" />}
           <polygon points={`0,${H} ${line} ${W},${H}`} fill="var(--accent-soft)" />
           <polyline points={line} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
         </svg>

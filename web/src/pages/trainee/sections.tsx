@@ -338,7 +338,7 @@ function PerWeekCard({ trainee, logs }: SectionProps) {
           {perWeek.map((w) => (
             <div key={w.weekStart} className="stack" style={{ alignItems: 'center', justifyContent: 'flex-end', height: '100%', gap: 6 }}>
               <span className="mono xs faint" dir="ltr">{w.count}/{trainee.frequency}</span>
-              <span style={{ width: '100%', maxWidth: 40, height: `${Math.max(2, Math.min(100, (w.count / trainee.frequency) * 100))}%`, borderRadius: '4px 4px 0 0', background: w.count >= trainee.frequency ? 'var(--accent)' : '#d7dceb' }} />
+              <span style={{ width: '100%', maxWidth: 40, height: `${Math.max(2, Math.min(100, (w.count / trainee.frequency) * 100))}%`, borderRadius: '4px 4px 0 0', background: w.count >= trainee.frequency ? 'var(--accent)' : 'var(--bar-soft)' }} />
             </div>
           ))}
         </div>

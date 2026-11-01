@@ -14,7 +14,7 @@ export function BarChart({ bars, label, format = (v) => String(Math.round(v)), h
         {bars.map((b, i) => (
           <div key={i} className="stack" style={{ alignItems: 'center', justifyContent: 'flex-end', height: '100%', gap: 4 }}>
             <span className="mono xs faint" style={{ whiteSpace: 'nowrap' }}>{format(b.value)}</span>
-            <span style={{ width: '100%', maxWidth: 36, height: `${Math.max(2, (b.value / max) * 82)}%`, borderRadius: '4px 4px 0 0', background: b.highlight ? 'var(--accent)' : '#cfd6ee' }} />
+            <span style={{ width: '100%', maxWidth: 36, height: `${Math.max(2, (b.value / max) * 82)}%`, borderRadius: '4px 4px 0 0', background: b.highlight ? 'var(--accent)' : 'var(--bar-soft)' }} />
           </div>
         ))}
       </div>

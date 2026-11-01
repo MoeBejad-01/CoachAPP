@@ -34,6 +34,12 @@ export function SettingsPage() {
                   {['USD', 'EUR', 'GBP', 'SAR', 'AED', 'KWD', 'QAR', 'CAD', 'AUD'].map((c) => <option key={c}>{c}</option>)}
                 </select>
               </label>
+              <label className="field">{t('settings.theme')}
+                <select className="select" value={state.coach.theme ?? 'dark'} onChange={(e) => updateCoach({ theme: e.target.value as 'light' | 'dark' })}>
+                  <option value="dark">{t('settings.themeDark')}</option>
+                  <option value="light">{t('settings.themeLight')}</option>
+                </select>
+              </label>
               <label className="field">{t('settings.language')}
                 <select className="select" value={lang} onChange={(e) => setLang(e.target.value as Lang)}>
                   <option value="en">English</option>

@@ -54,7 +54,7 @@ export function CalendarPage() {
                   {list.map((s) => {
                     const tr = s.traineeId ? byId.get(s.traineeId) : undefined;
                     return (
-                      <button key={s.id} type="button" className={`event${s.start < now ? ' past' : ''}`} style={{ borderInlineStart: `3px solid ${s.location === 'In person' ? 'var(--accent)' : '#9a9ca3'}` }} onClick={() => setSelected(s)}>
+                      <button key={s.id} type="button" className={`event${s.start < now ? ' past' : ''}`} style={{ borderInlineStart: `3px solid ${s.location === 'In person' ? 'var(--accent)' : 'var(--neutral)'}` }} onClick={() => setSelected(s)}>
                         <span className="mono xs faint">{s.start.slice(11, 16)} · {t('common.minutes', { n: s.durationMin })}</span>
                         <span style={{ fontWeight: 500 }} className="ellipsis">{tr ? fullName(tr) : s.title}</span>
                         <span className="xs muted ellipsis">{tr ? s.title : t(`location.${s.location}`)}</span>

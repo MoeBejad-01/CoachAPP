@@ -64,7 +64,7 @@ export function NewTraineePage() {
             <li key={n} style={{ flex: '1 1 180px' }}>
               <button type="button" disabled={!reachable && !cur} aria-current={cur ? 'step' : undefined} onClick={() => setStep(n)}
                 className="choice" style={{ width: '100%', flexDirection: 'row', alignItems: 'center', gap: 12, borderColor: cur ? 'var(--accent)' : undefined }}>
-                <span className="avatar mono" style={{ width: 26, height: 26, fontSize: 12, background: cur ? 'var(--accent)' : n < step ? 'var(--ink)' : 'var(--muted-bg)', color: cur || n < step ? '#fff' : '#4f5159' }}>{n}</span>
+                <span className="avatar mono" style={{ width: 26, height: 26, fontSize: 12, background: cur ? 'var(--accent)' : n < step ? 'var(--ink)' : 'var(--muted-bg)', color: cur ? '#fff' : n < step ? 'var(--on-ink)' : 'var(--chip-ink)' }}>{n}</span>
                 <span className="stack" style={{ gap: 1 }}><span className="t">{t(`new.step${n}`)}</span><span className="xs muted">{t(`new.step${n}.sub`)}</span></span>
               </button>
             </li>
