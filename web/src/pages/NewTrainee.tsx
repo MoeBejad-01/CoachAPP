@@ -45,12 +45,12 @@ export function NewTraineePage() {
       goalLabel: f.goalLabel, templateId: f.templateId, startDate: f.startDate,
     });
     toast(t('new.created', { name: f.firstName, email: f.email }));
-    navigate(`/trainees/${id}`);
+    navigate(`/coach/trainees/${id}`);
   };
 
   return (
     <>
-      <div className="crumbs"><Link to="/trainees">{t('nav.trainees')}</Link><span aria-hidden="true">/</span><span style={{ color: 'var(--ink)' }}>{t('common.newTrainee')}</span></div>
+      <div className="crumbs"><Link to="/coach/trainees">{t('nav.trainees')}</Link><span aria-hidden="true">/</span><span style={{ color: 'var(--ink)' }}>{t('common.newTrainee')}</span></div>
       <header className="stack">
         <h1 className="page-title">{t('new.title')}</h1>
         <p className="muted">{t('new.subtitle')}</p>
@@ -154,7 +154,7 @@ export function NewTraineePage() {
             )}
           </div>
           <div className="card-foot">
-            <button type="button" className="btn" onClick={() => (step === 1 ? navigate('/trainees') : setStep(step - 1))}>{step === 1 ? t('common.cancel') : t('common.back')}</button>
+            <button type="button" className="btn" onClick={() => (step === 1 ? navigate('/coach/trainees') : setStep(step - 1))}>{step === 1 ? t('common.cancel') : t('common.back')}</button>
             <button type="button" className="btn primary" disabled={step === 1 && !step1Valid} onClick={next}>{step === 3 ? t('new.create') : t('common.continue')}</button>
           </div>
         </section>

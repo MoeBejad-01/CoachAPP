@@ -28,16 +28,16 @@ export function Layout() {
         </div>
         <div className="nav-group">
           <div className="nav-label">{t('nav.workspace')}</div>
-          <Item to="/" end icon="grid" label={t('nav.overview')} />
-          <Item to="/trainees" icon="users" label={t('nav.trainees')} extra={<span className="nav-count">{state.trainees.length}</span>} />
-          <Item to="/programs" icon="clipboard" label={t('nav.programs')} />
-          <Item to="/messages" icon="message" label={t('nav.messages')} extra={unread > 0 ? <span className="nav-badge">{unread}</span> : null} />
-          <Item to="/calendar" icon="calendar" label={t('nav.calendar')} />
-          <Item to="/billing" icon="card" label={t('nav.billing')} />
+          <Item to="/coach" end icon="grid" label={t('nav.overview')} />
+          <Item to="/coach/trainees" icon="users" label={t('nav.trainees')} extra={<span className="nav-count">{state.trainees.length}</span>} />
+          <Item to="/coach/programs" icon="clipboard" label={t('nav.programs')} />
+          <Item to="/coach/messages" icon="message" label={t('nav.messages')} extra={unread > 0 ? <span className="nav-badge">{unread}</span> : null} />
+          <Item to="/coach/calendar" icon="calendar" label={t('nav.calendar')} />
+          <Item to="/coach/billing" icon="card" label={t('nav.billing')} />
         </div>
         <div className="nav-group">
           <div className="nav-label">{t('nav.account')}</div>
-          <Item to="/settings" icon="sliders" label={t('nav.settings')} />
+          <Item to="/coach/settings" icon="sliders" label={t('nav.settings')} />
           <Item to="/app" icon="user" label={t('nav.traineeApp')} />
           <button type="button" className="nav-link" style={{ border: 0, background: 'transparent', width: '100%', textAlign: 'start' }}
             lang={lang === 'ar' ? 'en' : 'ar'} onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}>

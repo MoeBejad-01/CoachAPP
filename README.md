@@ -3,7 +3,8 @@
 Coaching platform: a web dashboard for coaches and a mobile app for trainees, sharing one workspace.
 
 - `web/` — React + TypeScript + Vite app
-  - Coach dashboard at `/` (trainees, weekly programs, progress, InBody, chat, billing)
+  - Public website at `/` (homepage, `/login`, `/signup`)
+  - Coach dashboard at `/coach` (trainees, weekly programs, progress, InBody, chat, billing)
   - Trainee app at `/app` (today's session, workout logging, check-ins, InBody upload, chat)
   - English and Arabic (RTL)
 

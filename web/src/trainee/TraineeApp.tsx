@@ -72,7 +72,7 @@ function PreviewStage({ children }: { children: ReactNode }) {
           </select>
         </label>
         <div className="stack" style={{ gap: 8 }}>
-          <Link to={`/trainees/${trainee.id}`} className="btn"><Icon name="chevronLeft" size={16} />{t('ta.preview.coachView')}</Link>
+          <Link to={`/coach/trainees/${trainee.id}`} className="btn"><Icon name="chevronLeft" size={16} />{t('ta.preview.coachView')}</Link>
           <button type="button" className="btn ghost" onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}><Icon name="globe" size={16} />{t('nav.switchLang')}</button>
         </div>
         <ul className="ta-side-list small muted">

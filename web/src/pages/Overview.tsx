@@ -99,7 +99,7 @@ export function OverviewPage() {
           <button type="button" className="btn" aria-pressed={customizing} onClick={() => setCustomizing((v) => !v)} style={customizing ? { background: '#f4f6fd', borderColor: 'var(--accent-line)' } : undefined}>
             <Icon name="sliders" size={16} />{customizing ? t('common.done') : t('overview.customize')}
           </button>
-          <Link to="/trainees/new" className="btn primary"><Icon name="plus" size={16} strokeWidth={2} />{t('common.newTrainee')}</Link>
+          <Link to="/coach/trainees/new" className="btn primary"><Icon name="plus" size={16} strokeWidth={2} />{t('common.newTrainee')}</Link>
         </div>
       </header>
 
@@ -170,10 +170,10 @@ export function OverviewPage() {
                     <div key={tr.id} className="list-row">
                       <Avatar trainee={tr} size={32} />
                       <div className="stack grow" style={{ gap: 2 }}>
-                        <Link to={`/trainees/${tr.id}`} style={{ color: 'var(--ink)', fontWeight: 500 }}>{fullName(tr)}</Link>
+                        <Link to={`/coach/trainees/${tr.id}`} style={{ color: 'var(--ink)', fontWeight: 500 }}>{fullName(tr)}</Link>
                         <span className="small muted ellipsis"><span className="warn" style={{ fontWeight: 500 }}>{flagText(t, f)}</span> · {flagDetail(t, f)}</span>
                       </div>
-                      <Link to={msg ? `/messages/${tr.id}` : `/trainees/${tr.id}`} className="btn sm">{msg ? t('common.message') : t('common.review')}</Link>
+                      <Link to={msg ? `/coach/messages/${tr.id}` : `/coach/trainees/${tr.id}`} className="btn sm">{msg ? t('common.message') : t('common.review')}</Link>
                     </div>
                   );
                 })}
@@ -181,7 +181,7 @@ export function OverviewPage() {
               </Card>
             )}
             {w.sessions && (
-              <Card title={t('widget.sessions')} action={<Link to="/calendar" className="small">{t('overview.openCalendar')}</Link>}>
+              <Card title={t('widget.sessions')} action={<Link to="/coach/calendar" className="small">{t('overview.openCalendar')}</Link>}>
                 {todaySessions.map((s) => {
                   const tr = s.traineeId ? byId.get(s.traineeId) : undefined;
                   return (
@@ -189,7 +189,7 @@ export function OverviewPage() {
                       <span className="mono" style={{ fontSize: 13, width: 44 }}>{s.start.slice(11, 16)}</span>
                       <span style={{ width: 2, alignSelf: 'stretch', background: s.location === 'In person' ? 'var(--accent)' : '#9a9ca3', borderRadius: 1 }} />
                       <div className="stack grow" style={{ gap: 2 }}>
-                        {tr ? <Link to={`/trainees/${tr.id}`} style={{ color: 'var(--ink)', fontWeight: 500 }}>{fullName(tr)}</Link> : <span style={{ fontWeight: 500 }}>{s.title}</span>}
+                        {tr ? <Link to={`/coach/trainees/${tr.id}`} style={{ color: 'var(--ink)', fontWeight: 500 }}>{fullName(tr)}</Link> : <span style={{ fontWeight: 500 }}>{s.title}</span>}
                         <span className="small muted">{tr ? s.title : t('common.minutes', { n: s.durationMin })}</span>
                       </div>
                       <span className="chip outline">{t(`location.${s.location}`)}</span>
@@ -200,9 +200,9 @@ export function OverviewPage() {
               </Card>
             )}
             {w.messages && (
-              <Card title={t('widget.messages')} action={<Link to="/messages" className="small">{t('overview.openInbox')}</Link>}>
+              <Card title={t('widget.messages')} action={<Link to="/coach/messages" className="small">{t('overview.openInbox')}</Link>}>
                 {unread.map(({ trainee, last, unread: n }) => (
-                  <Link key={trainee.id} to={`/messages/${trainee.id}`} className="list-row" style={{ alignItems: 'flex-start' }}>
+                  <Link key={trainee.id} to={`/coach/messages/${trainee.id}`} className="list-row" style={{ alignItems: 'flex-start' }}>
                     <Avatar trainee={trainee} size={32} />
                     <div className="stack grow" style={{ gap: 2 }}>
                       <span className="row" style={{ justifyContent: 'space-between' }}>
@@ -256,7 +256,7 @@ export function OverviewPage() {
                 {prs.map((p) => {
                   const tr = byId.get(p.traineeId)!;
                   return (
-                    <Link key={`${p.traineeId}-${p.exercise}`} to={`/trainees/${tr.id}?tab=progress`} className="list-row">
+                    <Link key={`${p.traineeId}-${p.exercise}`} to={`/coach/trainees/${tr.id}?tab=progress`} className="list-row">
                       <div className="stack grow" style={{ gap: 2 }}>
                         <span style={{ fontWeight: 500 }}>{p.exercise}</span>
                         <span className="small muted">{fullName(tr)} · {fmtRelativeDay(p.date)}</span>
@@ -270,9 +270,9 @@ export function OverviewPage() {
               </Card>
             )}
             {w.renewals && (
-              <Card title={t('overview.renewalsTitle')} action={<Link to="/billing" className="small">{t('nav.billing')}</Link>}>
+              <Card title={t('overview.renewalsTitle')} action={<Link to="/coach/billing" className="small">{t('nav.billing')}</Link>}>
                 {renewals.map((tr) => (
-                  <Link key={tr.id} to="/billing" className="list-row">
+                  <Link key={tr.id} to="/coach/billing" className="list-row">
                     <div className="stack grow" style={{ gap: 2 }}>
                       <span style={{ fontWeight: 500 }}>{fullName(tr)}</span>
                       <span className="small muted">{t(`mode.plan.${tr.mode}`)} · {formatMoney(state, tr.membership.price)}</span>

@@ -36,7 +36,7 @@ export function TraineePage() {
 
   if (!trainee || !stats) {
     return (
-      <div className="card"><Empty>{t('trainee.notFound')} <Link to="/trainees">{t('trainee.backToList')}</Link></Empty></div>
+      <div className="card"><Empty>{t('trainee.notFound')} <Link to="/coach/trainees">{t('trainee.backToList')}</Link></Empty></div>
     );
   }
 
@@ -56,7 +56,7 @@ export function TraineePage() {
     <>
       <div className="row" style={{ justifyContent: 'space-between' }}>
         <div className="crumbs">
-          <Link to="/trainees">{t('nav.trainees')}</Link><span aria-hidden="true">/</span><span style={{ color: 'var(--ink)' }}>{fullName(trainee)}</span>
+          <Link to="/coach/trainees">{t('nav.trainees')}</Link><span aria-hidden="true">/</span><span style={{ color: 'var(--ink)' }}>{fullName(trainee)}</span>
         </div>
         <div className="row">
           <Link to={`/app/${trainee.id}`} className="btn sm ghost"><Icon name="user" size={15} />{t('ta.openAs', { name: trainee.firstName })}</Link>
@@ -92,7 +92,7 @@ export function TraineePage() {
               ) : a === 'edit' ? (
                 <button key={a} type="button" className="btn" onClick={() => setEditing(true)}><Icon name="edit" size={15} />{t('trainee.editProfile')}</button>
               ) : (
-                <button key={a} type="button" className="btn primary" onClick={() => navigate(`/messages/${trainee.id}`)}><Icon name="message" size={16} />{t('common.message')}</button>
+                <button key={a} type="button" className="btn primary" onClick={() => navigate(`/coach/messages/${trainee.id}`)}><Icon name="message" size={16} />{t('common.message')}</button>
               ))}
             </div>
           )}

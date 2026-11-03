@@ -78,7 +78,7 @@ export function CalendarPage() {
           </>
         }>
           <dl className="kv" style={{ gridTemplateColumns: '120px 1fr' }}>
-            <dt>{t('roster.colTrainee')}</dt><dd style={{ textAlign: 'start' }}>{selected.traineeId && byId.get(selected.traineeId) ? <Link to={`/trainees/${selected.traineeId}`}>{fullName(byId.get(selected.traineeId)!)}</Link> : '—'}</dd>
+            <dt>{t('roster.colTrainee')}</dt><dd style={{ textAlign: 'start' }}>{selected.traineeId && byId.get(selected.traineeId) ? <Link to={`/coach/trainees/${selected.traineeId}`}>{fullName(byId.get(selected.traineeId)!)}</Link> : '—'}</dd>
             <dt>{t('cal.when')}</dt><dd style={{ textAlign: 'start' }}>{fmtDay(selected.start.slice(0, 10))}{t('common.comma')} {selected.start.slice(11, 16)}</dd>
             <dt>{t('cal.duration')}</dt><dd style={{ textAlign: 'start' }}>{t('common.minutes', { n: selected.durationMin })}</dd>
             <dt>{t('cal.location')}</dt><dd style={{ textAlign: 'start' }}>{t(`location.${selected.location}`)}</dd>

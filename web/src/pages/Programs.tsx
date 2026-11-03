@@ -29,7 +29,7 @@ export function ProgramsPage() {
     return m;
   }, [state.trainees]);
 
-  if (!id && state.templates[0]) return <Navigate to={`/programs/${state.templates[0].id}`} replace />;
+  if (!id && state.templates[0]) return <Navigate to={`/coach/programs/${state.templates[0].id}`} replace />;
   const tpl = state.templates.find((x) => x.id === id);
   const set = (patch: Partial<Template>) => tpl && updateTemplate(tpl.id, patch);
 
@@ -40,7 +40,7 @@ export function ProgramsPage() {
           <h1 className="page-title">{t('tpl.title')}</h1>
           <p className="muted">{t('tpl.subtitle')}</p>
         </div>
-        <button type="button" className="btn primary" onClick={() => { const nid = createTemplate(t('tpl.untitled'), t('editor.dayN', { n: 1 }), t('editor.newExercise')); navigate(`/programs/${nid}`); toast(t('tpl.created')); }}>
+        <button type="button" className="btn primary" onClick={() => { const nid = createTemplate(t('tpl.untitled'), t('editor.dayN', { n: 1 }), t('editor.newExercise')); navigate(`/coach/programs/${nid}`); toast(t('tpl.created')); }}>
           <Icon name="plus" size={16} strokeWidth={2} />{t('tpl.new')}
         </button>
       </header>
@@ -48,7 +48,7 @@ export function ProgramsPage() {
       <div className="split">
         <section aria-label={t('tpl.list')} className="narrow stack" style={{ gap: 8, flexBasis: 280 }}>
           {state.templates.map((x) => (
-            <button key={x.id} type="button" className={`choice${x.id === id ? ' on' : ''}`} style={{ gap: 8 }} onClick={() => navigate(`/programs/${x.id}`)}>
+            <button key={x.id} type="button" className={`choice${x.id === id ? ' on' : ''}`} style={{ gap: 8 }} onClick={() => navigate(`/coach/programs/${x.id}`)}>
               <span className="row" style={{ justifyContent: 'space-between', width: '100%' }}>
                 <span className="t">{x.name}</span>
                 <span className="xs muted" style={{ whiteSpace: 'nowrap' }}>{t('tpl.activeCount', { n: usage.get(x.id) ?? 0 })}</span>
@@ -74,7 +74,7 @@ export function ProgramsPage() {
                     <input className="input" aria-label={t('tpl.name')} style={{ fontSize: 18, fontWeight: 600, height: 44, maxWidth: 480 }} value={tpl.name} onChange={(e) => set({ name: e.target.value })} />
                   </div>
                   <div className="row">
-                    <button type="button" className="btn sm" onClick={() => { const nid = duplicateTemplate(tpl.id); if (nid) { navigate(`/programs/${nid}`); toast(t('tpl.duplicated')); } }}><Icon name="copy" size={14} />{t('tpl.duplicate')}</button>
+                    <button type="button" className="btn sm" onClick={() => { const nid = duplicateTemplate(tpl.id); if (nid) { navigate(`/coach/programs/${nid}`); toast(t('tpl.duplicated')); } }}><Icon name="copy" size={14} />{t('tpl.duplicate')}</button>
                     <button type="button" className="btn sm danger" onClick={() => setConfirmDelete(true)}><Icon name="trash" size={14} />{t('common.delete')}</button>
                   </div>
                 </div>
@@ -114,7 +114,7 @@ export function ProgramsPage() {
         <Modal title={t('tpl.deleteTitle')} onClose={() => setConfirmDelete(false)} footer={
           <>
             <button type="button" className="btn" onClick={() => setConfirmDelete(false)}>{t('common.cancel')}</button>
-            <button type="button" className="btn dark" onClick={() => { deleteTemplate(tpl.id); setConfirmDelete(false); navigate('/programs'); toast(t('tpl.deleted')); }}>{t('tpl.deleteConfirm')}</button>
+            <button type="button" className="btn dark" onClick={() => { deleteTemplate(tpl.id); setConfirmDelete(false); navigate('/coach/programs'); toast(t('tpl.deleted')); }}>{t('tpl.deleteConfirm')}</button>
           </>
         }>
           <p>{t('tpl.deleteBody', { name: tpl.name })}</p>

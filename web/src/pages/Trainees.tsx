@@ -27,7 +27,7 @@ export function TraineesPage() {
             <span className="sr-only">{t('common.searchTrainees')}</span>
             <input type="search" placeholder={t('trainees.searchPlaceholder')} value={query} onChange={(e) => setQuery(e.target.value)} />
           </label>
-          <Link to="/trainees/new" className="btn primary"><Icon name="plus" size={16} strokeWidth={2} />{t('common.newTrainee')}</Link>
+          <Link to="/coach/trainees/new" className="btn primary"><Icon name="plus" size={16} strokeWidth={2} />{t('common.newTrainee')}</Link>
         </div>
       </header>
       <Roster

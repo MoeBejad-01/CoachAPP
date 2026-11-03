@@ -100,11 +100,11 @@ export function Roster({ trainees, stats, filter, onFilter, query, limit, showSo
             const overdue = tr.status === 'active' && s.missedCheckins > 0;
             const checkin = tr.status === 'paused' ? t('group.paused') : tr.status === 'inactive' ? '—' : overdue ? t('common.overdue') : s.nextCheckin === today ? t('common.today') : fmtDay(s.nextCheckin);
             return (
-              <div key={tr.id} className="dg-row click" style={{ gridTemplateColumns: COLS }} onClick={() => navigate(`/trainees/${tr.id}`)}>
+              <div key={tr.id} className="dg-row click" style={{ gridTemplateColumns: COLS }} onClick={() => navigate(`/coach/trainees/${tr.id}`)}>
                 <div className="row" style={{ gap: 12, minWidth: 0 }}>
                   <Avatar trainee={tr} />
                   <div className="stack grow" style={{ gap: 2 }}>
-                    <Link to={`/trainees/${tr.id}`} style={{ color: 'var(--ink)', fontWeight: 500 }} onClick={(e) => e.stopPropagation()}>{fullName(tr)}</Link>
+                    <Link to={`/coach/trainees/${tr.id}`} style={{ color: 'var(--ink)', fontWeight: 500 }} onClick={(e) => e.stopPropagation()}>{fullName(tr)}</Link>
                     <span className="small muted ellipsis">{tr.goals[0]?.label ?? t('roster.noGoal')}</span>
                   </div>
                 </div>
@@ -134,7 +134,7 @@ export function Roster({ trainees, stats, filter, onFilter, query, limit, showSo
       {limit && rows.length > limit && (
         <div className="card-foot">
           <span className="small muted">{t('roster.more', { n: rows.length - limit })}</span>
-          <Link to="/trainees" className="small">{t('roster.viewAll')}</Link>
+          <Link to="/coach/trainees" className="small">{t('roster.viewAll')}</Link>
         </div>
       )}
     </section>
