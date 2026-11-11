@@ -9,7 +9,7 @@ type Period = 'monthly' | 'yearly';
 export function Pricing({ onWaitlist }: { onWaitlist: (plan: Plan) => void }) {
   const { t, lang } = useI18n();
   const [period, setPeriod] = useState<Period>('monthly');
-  const money = new Intl.NumberFormat(lang === 'ar' ? 'ar' : 'en', { style: 'currency', currency: CURRENCY, maximumFractionDigits: 0 });
+  const money = new Intl.NumberFormat(lang === 'ar' ? 'ar-u-nu-latn' : 'en', { style: 'currency', currency: CURRENCY, maximumFractionDigits: 0 });
 
   return (
     <Section id="pricing" labelledBy="pricing-title" className="pricing">

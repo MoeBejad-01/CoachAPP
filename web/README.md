@@ -43,6 +43,8 @@ src/
 | `/login` | Log in (with demo accounts while auth is mocked) |
 | `/signup` | Sign up: choose Coach or Trainee, then account details. `?role=coach` or `?role=trainee` skips the choice |
 | `/signup?coach=<coachId>` | A coach's registration link: preselects Trainee and shows "You're joining Coach …". Try `?coach=demo` |
+| `/c/<handle>` | A coach's own page, the link they send to prospective trainees. Try `/c/omar` |
+| `/join/<coach>?plan=<id>` | Join a coach: sign up or log in first if needed, then a 5-step intake form (body, training, health, plan) that sends a request to the coach |
 | `/forgot-password` | Request a password reset link |
 | `/coach/...` | Coach dashboard (moved from `/`) |
 | `/app/...` | Trainee app (unchanged) |
@@ -64,6 +66,44 @@ screen on a capable device, so the homepage stays light.
   wording are in `strings.ts` (`site.pricing.*`).
 - **Muscle map shapes and example exercises**: `src/site/components/anatomy/shapes.ts` and `site.m.*` strings.
 
+### Coach pages (`/c/<handle>`)
+
+Each coach has a public page built entirely from their profile
+(`src/site/coach/types.ts`): photo, story, stats, their own competition lifts,
+trainee results, method, programs, plans, inbox quotes, intro-call times and FAQ.
+Coach-written text is stored per language (`{ en, ar }`, English as fallback);
+the page's own labels are in `strings.ts` under `site.cp.*`. `sections` sets
+which sections show and in what order, and any section without content is skipped.
+
+- The example coach is `src/site/coach/demoCoach.ts` (`/c/omar`, account id `demo`).
+- `src/site/services/coachProfiles.ts` finds a page by handle or account id. A coach
+  who signs up gets a starter page at `/c/<accountId>` with just their name until
+  they fill it in; `saveCoachProfile` is there for the page editor, which isn't built yet.
+- Prices on coach pages are for reference only: trainees pay the coach directly and
+  Coach HQ takes no payments. Plan and program buttons ("Request this plan", "Ask about
+  this program") lead to `/join/<handle>?plan=<id>`.
+
+### Joining a coach (`/join/<coach>`)
+
+1. "Join" on a coach page opens `/join/<handle>?plan=<id>`. Visitors who aren't signed in
+   are sent to `/signup?coach=…&plan=…&next=…` (or log in from there) and come straight back.
+   Signup and login honour `next` for any same-site path.
+2. The intake form (`src/site/pages/join/`) has five steps: about you, body (metric or
+   imperial), training, health (pain areas marked on the muscle map) and plan + message.
+   A barbell loads a plate per finished step, and a card beside the form shows what the
+   coach will see. Answers are saved as a draft while typing.
+3. "Send request" stores the request (`src/site/services/joinRequests.ts`, mocked in the
+   browser under `coachhq:joinRequests`) with measurements converted to metric. Coming back
+   shows the sent request with "Update my answers". What the coach does next isn't built yet.
+- **Photo**: `photo` is the portrait's URL. A coach viewing their own page (log in as the
+  demo coach and open `/c/omar`) gets "Change photo" and "Use the default picture" buttons
+  under the portrait. Without a photo the page shows the default picture: an illustrated
+  portrait drawn from the homepage's anatomy figure and the coach's initials. Uploads are
+  mocked: the image is cropped to 4:5, scaled down and kept in the browser.
+- The demo coach's photo, `public/coaches/omar.jpg`, is "Male fitness model" by Samuel
+  Girven on Unsplash (unsplash.com/photos/Ppua0I4VjqE, Unsplash License). It shows a real
+  person next to made-up credentials and reviews, so replace it before launch.
+
 Theme follows the system setting until the visitor uses the toggle (saved as `coachhq:theme`).
 Language is shared with the dashboard (`coachhq:lang`). All motion is skipped under
 `prefers-reduced-motion`.
@@ -75,6 +115,11 @@ Language is shared with the dashboard (`coachhq:lang`). All motion is skipped un
   `trainee@coachhq.example` / `demo1234`. Coaches land on `/coach`, trainees on `/app`.
   Google and Apple buttons are placeholders. Replace the function bodies with API calls; the pages only
   use the exported functions.
+- **Join requests** (`src/site/services/joinRequests.ts`): kept in the browser, with drafts under
+  `coachhq:joinDraft:<coach>:<account>`.
+- **Coach pages and intro calls** (`src/site/services/coachProfiles.ts`): profiles come from the demo
+  data or a starter page, edits would be kept in the browser, and intro call requests are stored under
+  `coachhq:introCalls`.
 - **Contact form** (`src/site/services/contact.ts`): messages are kept in the browser under
   `coachhq:contact`. Replace `sendContactMessage` with a mail or CRM endpoint.
 

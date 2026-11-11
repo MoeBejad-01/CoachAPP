@@ -50,6 +50,13 @@ const PATHS = {
   xLogo: <><path d="M4 4h4.5L20 20h-4.5z" /><path d="M19.5 4l-6.6 7.3M4.5 20l6.6-7.3" /></>,
   youtube: <><rect x="2" y="5" width="20" height="14" rx="4" /><path d="m10 9 5 3-5 3z" /></>,
   linkedin: <><rect x="3" y="3" width="18" height="18" rx="3" /><path d="M8 11v5.5M8 7.5v.01M12 16.5V11M12 13.5a2.5 2.5 0 0 1 5 0v3" /></>,
+  share: <><path d="M12 3v12" /><path d="m7 8 5-5 5 5" /><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" /></>,
+  star: <path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z" />,
+  clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
+  pin: <><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z" /><circle cx="12" cy="9.5" r="2.5" /></>,
+  pause: <path d="M8 5v14M16 5v14" />,
+  award: <><circle cx="12" cy="9" r="6" /><path d="m8.5 14.2-1.5 7.3 5-3 5 3-1.5-7.3" /></>,
+  camera: <><path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.8l1.4-2h6.6l1.4 2h1.8A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z" /><circle cx="12" cy="13" r="3.5" /></>,
 } as const;
 
 const DIRECTIONAL = new Set<string>(['chevron', 'chevronLeft', 'send', 'play', 'arrow']);

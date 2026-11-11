@@ -101,6 +101,10 @@
 .auth-invite-av { width: 44px; height: 44px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--g-brand); color: #fff; font-weight: 700; }
 .auth-invite b { display: block; font-size: 16px; }
 .auth-invite div span { font-size: 14px; color: var(--c-muted); }
+.auth-invite span.auth-invite-plan {
+  display: inline-block; margin-top: 6px; padding: 3px 10px; border-radius: 980px;
+  font-size: 12px; font-weight: 600; color: var(--c-primary); background: var(--c-primary-soft);
+}
 .auth-invite.is-loading { gap: 10px; font-size: 14px; color: var(--c-muted); }
 .auth-role { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-radius: 14px; font-size: 14px; background: var(--c-surface-2); }
 .auth-role span { display: flex; align-items: center; gap: 8px; font-weight: 600; }

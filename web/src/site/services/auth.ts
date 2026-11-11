@@ -54,6 +54,11 @@ export const DEMO_COACH_ID = 'demo';
 /** Where each role lands after logging in or signing up. */
 export const homeFor = (role: Role) => (role === 'coach' ? '/coach' : '/app');
 
+/** A `?next=` path to continue to after auth, if it stays on this site. */
+export function safeNext(next: string | null): string | null {
+  return next && next.startsWith('/') && !next.startsWith('//') && !next.startsWith('/\\') ? next : null;
+}
+
 const wait = (ms = LATENCY_MS) => new Promise((r) => setTimeout(r, ms));
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
 

@@ -53,7 +53,12 @@ export function ForCoaches() {
   return (
     <Split id="for-coaches" eyebrow={t('site.coaches.eyebrow')} title={t('site.coaches.title')} lead={t('site.coaches.lead')}
       benefits={COACH_BENEFITS}
-      action={<ButtonLink to="/signup?role=coach" size="lg">{t('site.coaches.cta')}</ButtonLink>}
+      action={
+        <div className="split-buttons">
+          <ButtonLink to="/signup?role=coach" size="lg">{t('site.coaches.cta')}</ButtonLink>
+          <ButtonLink to="/c/omar" size="lg" variant="ghost">{t('site.coaches.example')}<Icon name="arrow" size={18} strokeWidth={2} /></ButtonLink>
+        </div>
+      }
       visual={<LaptopFrame label={t('site.mock.label')} />} />
   );
 }

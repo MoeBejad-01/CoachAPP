@@ -25,6 +25,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
         <div className="s-container auth-top-in">
           <Logo />
           <div className="auth-tools">
+            <Link to="/" className="s-nav-link auth-home">{t('site.nav.homeLink')}</Link>
             <LanguageSwitch />
             <ThemeToggle />
           </div>

@@ -2,7 +2,7 @@
 // reveals and scroll-linked progress. Everything here is a no-op (content
 // shown in its final state) when the visitor prefers reduced motion.
 
-import { useEffect, useRef, useSyncExternalStore, type RefObject } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore, type RefObject } from 'react';
 
 const reducedQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -31,13 +31,14 @@ export function canRun3D(): boolean {
 // ---------- Reveal on scroll ----------
 
 let revealer: IntersectionObserver | null = null;
+const onReveal = new WeakMap<Element, () => void>();
 
 function getRevealer() {
   revealer ??= new IntersectionObserver(
     (entries) => {
       for (const e of entries) {
         if (!e.isIntersecting) continue;
-        e.target.classList.add('is-in');
+        onReveal.get(e.target)?.();
         revealer!.unobserve(e.target);
       }
     },
@@ -46,21 +47,26 @@ function getRevealer() {
   return revealer;
 }
 
-/** Fades and slides the element up the first time it scrolls into view (pair with `.s-reveal`). */
-export function useReveal<T extends HTMLElement>(): RefObject<T | null> {
+/**
+ * Whether the element has scrolled into view yet (always true under reduced
+ * motion). Put `is-in` in its className from this, next to `.s-reveal`, so a
+ * re-render that changes the className can't drop it.
+ */
+export function useReveal<T extends HTMLElement>(): [RefObject<T | null>, boolean] {
   const ref = useRef<T>(null);
+  const [shown, setShown] = useState(prefersReducedMotion);
   useEffect(() => {
     const el = ref.current;
-    if (!el) return;
-    if (prefersReducedMotion()) {
-      el.classList.add('is-in');
-      return;
-    }
+    if (!el || shown) return;
     const io = getRevealer();
+    onReveal.set(el, () => setShown(true));
     io.observe(el);
-    return () => io.unobserve(el);
-  }, []);
-  return ref;
+    return () => {
+      io.unobserve(el);
+      onReveal.delete(el);
+    };
+  }, [shown]);
+  return [ref, shown];
 }
 
 // ---------- Scroll progress ----------

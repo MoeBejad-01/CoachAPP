@@ -42,6 +42,10 @@ const TraineeAppIndex = lazyNamed(traineeScreens, 'TraineeAppIndex');
 const TraineeAppRoot = lazyNamed(traineeScreens, 'TraineeAppRoot');
 const WorkoutScreen = lazyNamed(traineeScreens, 'WorkoutScreen');
 
+// Coach pages are opened from links coaches share, so they load on their own too.
+const CoachPage = lazyNamed(() => import('./site/pages/coach/CoachPage'), 'CoachPage');
+const JoinPage = lazyNamed(() => import('./site/pages/join/JoinPage'), 'JoinPage');
+
 function AppRoutes() {
   // Remount on language change so every date and label re-renders in the new language.
   const { lang } = useI18n();
@@ -55,6 +59,8 @@ function AppRoutes() {
           <Route path="login" element={<LoginPage />} />
           <Route path="signup" element={<SignupPage />} />
           <Route path="forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="c/:handle" element={<CoachPage />} />
+          <Route path="join/:coach" element={<JoinPage />} />
           {/* Trainee app */}
           <Route path="app" element={<TraineeAppIndex />} />
           <Route path="app/:tid" element={<TraineeAppRoot />}>

@@ -11,6 +11,7 @@ const PLATE: Record<number, { h: number; w: number; color: string; ink: string }
   20: { h: 150, w: 24, color: '#007AFF', ink: '#ffffff' },
   15: { h: 128, w: 21, color: '#3BA7F2', ink: '#0B3D91' },
   10: { h: 106, w: 18, color: '#7FE7D6', ink: '#0B3D91' },
+  5: { h: 86, w: 15, color: '#c9d3e1', ink: '#0B3D91' },
 };
 
 export const barbellTotal = (plates: number[], loaded: number) =>

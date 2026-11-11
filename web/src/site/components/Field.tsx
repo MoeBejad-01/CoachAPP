@@ -8,9 +8,16 @@ import { cx } from './ui';
 
 export const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s.trim());
 export const isStrongPassword = (s: string) => s.length >= 8 && /[A-Za-z؀-ۿ]/.test(s) && /\d/.test(s);
-export const isPhone = (s: string) => /^\+?[\d\s()-]{7,20}$/.test(s.trim()) && s.replace(/\D/g, '').length >= 7;
+/** Arabic-Indic and Persian digits (and the Arabic decimal comma) to ASCII, so typed numbers parse. */
+export const latinDigits = (s: string) =>
+  s.replace(/[\u0660-\u0669\u06F0-\u06F9]/g, (d) => String((d.charCodeAt(0) & 0xf) % 10)).replace(/[\u066B,]/g, '.');
 
-interface FieldBits {
+export const isPhone = (s: string) => {
+  const v = latinDigits(s).trim();
+  return /^\+?[\d\s().-]{7,20}$/.test(v) && v.replace(/\D/g, '').length >= 7;
+};
+
+export interface FieldBits {
   id: string;
   label: string;
   error?: string;
@@ -19,10 +26,11 @@ interface FieldBits {
   optional?: string;
 }
 
-const describedBy = (id: string, error?: string, hint?: string) =>
+export const describedBy = (id: string, error?: string, hint?: string) =>
   [error && `${id}-err`, hint && `${id}-hint`].filter(Boolean).join(' ') || undefined;
 
-function Wrap({ id, label, error, hint, optional, children }: FieldBits & { children: ReactNode }) {
+/** Label, hint and error around any control; the control's id must match `id`. */
+export function Wrap({ id, label, error, hint, optional, children }: FieldBits & { children: ReactNode }) {
   return (
     <div className={cx('s-field', error && 'has-error')}>
       <label htmlFor={id}>

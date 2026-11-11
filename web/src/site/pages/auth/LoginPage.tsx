@@ -1,15 +1,18 @@
 import { useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Icon } from '../../../components/Icon';
 import { useI18n } from '../../../i18n';
 import { Checkbox, FormAlert, PasswordField, TextField, isEmail } from '../../components/Field';
 import { Button } from '../../components/ui';
-import { AuthError, DEMO_ACCOUNTS, homeFor, logIn, type Role } from '../../services/auth';
+import { AuthError, DEMO_ACCOUNTS, homeFor, logIn, safeNext, type Role } from '../../services/auth';
 import { AuthShell, OrDivider, SocialButtons } from './AuthShell';
 
 export function LoginPage() {
   const { t } = useI18n();
   const navigate = useNavigate();
+  const { search } = useLocation();
+  const [params] = useSearchParams();
+  const next = safeNext(params.get('next'));
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(true);
@@ -37,7 +40,7 @@ export function LoginPage() {
     try {
       const session = await logIn({ email, password, remember });
       setWelcome(session.name.split(' ')[0]);
-      window.setTimeout(() => navigate(homeFor(session.role)), 700);
+      window.setTimeout(() => navigate(next ?? homeFor(session.role)), 700);
     } catch (err) {
       setFailed(err instanceof AuthError && err.code === 'invalid_credentials' ? 'invalid' : 'unknown');
       setLoading(false);
@@ -66,7 +69,7 @@ export function LoginPage() {
     <AuthShell>
       <div className="auth-head">
         <h1>{t('site.login.title')}</h1>
-        <p>{t('site.login.lead')}</p>
+        <p>{t(next?.startsWith('/join/') ? 'site.login.joinLead' : 'site.login.lead')}</p>
       </div>
       <SocialButtons />
       <OrDivider />
@@ -88,7 +91,7 @@ export function LoginPage() {
         <button type="button" onClick={() => fillDemo('trainee')}>{t('site.auth.demoTrainee')}</button>
       </div>
       <p className="auth-switch">
-        {t('site.login.noAccount')} <Link to="/signup">{t('site.login.create')}</Link>
+        {t('site.login.noAccount')} <Link to={`/signup${search}`}>{t('site.login.create')}</Link>
       </p>
     </AuthShell>
   );

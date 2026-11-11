@@ -314,6 +314,7 @@
 .split-check { width: 24px; height: 24px; border-radius: 50%; flex: none; display: grid; place-items: center; margin-top: 1px; background: var(--c-primary-soft); color: var(--c-primary); }
 .split-actions { display: grid; gap: 14px; justify-items: start; }
 .split-note { font-size: 14px; color: var(--c-muted); }
+.split-buttons { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 @media (max-width: 960px) {
   .split-grid, .split--flip .split-grid { grid-template-columns: 1fr; gap: 56px; }
   .split--flip .split-copy { order: 0; }

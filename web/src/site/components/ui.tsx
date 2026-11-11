@@ -63,9 +63,9 @@ export function SectionHeader({ id, eyebrow, title, lead, align = 'center' }: {
   lead?: ReactNode;
   align?: 'center' | 'start';
 }) {
-  const ref = useReveal<HTMLDivElement>();
+  const [ref, shown] = useReveal<HTMLDivElement>();
   return (
-    <div ref={ref} className={cx('s-head s-reveal', align === 'start' && 's-head--start')}>
+    <div ref={ref} className={cx('s-head s-reveal', shown && 'is-in', align === 'start' && 's-head--start')}>
       {eyebrow && <p className="s-eyebrow">{eyebrow}</p>}
       <h2 id={id} className="s-h2">{title}</h2>
       {lead && <p className="s-lead">{lead}</p>}
@@ -80,9 +80,9 @@ export function Reveal({ delay = 0, className, style, children }: {
   style?: CSSProperties;
   children: ReactNode;
 }) {
-  const ref = useReveal<HTMLDivElement>();
+  const [ref, shown] = useReveal<HTMLDivElement>();
   return (
-    <div ref={ref} className={cx('s-reveal', className)} style={{ ...style, '--reveal-delay': `${delay}ms` } as CSSProperties}>
+    <div ref={ref} className={cx('s-reveal', shown && 'is-in', className)} style={{ ...style, '--reveal-delay': `${delay}ms` } as CSSProperties}>
       {children}
     </div>
   );
@@ -95,9 +95,9 @@ export function RevealItem({ delay = 0, className, style, children }: {
   style?: CSSProperties;
   children: ReactNode;
 }) {
-  const ref = useReveal<HTMLLIElement>();
+  const [ref, shown] = useReveal<HTMLLIElement>();
   return (
-    <li ref={ref} className={cx('s-reveal', className)} style={{ ...style, '--reveal-delay': `${delay}ms` } as CSSProperties}>
+    <li ref={ref} className={cx('s-reveal', shown && 'is-in', className)} style={{ ...style, '--reveal-delay': `${delay}ms` } as CSSProperties}>
       {children}
     </li>
   );

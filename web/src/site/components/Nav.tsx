@@ -49,6 +49,26 @@ export function SectionLink({ id, className, children, onNavigate, current }: {
   );
 }
 
+/** "Home": back to the top on the homepage, to `/` from anywhere else. */
+export function HomeLink({ className, onNavigate, current }: { className?: string; onNavigate?: () => void; current?: boolean }) {
+  const { t } = useI18n();
+  const { pathname } = useLocation();
+  if (pathname !== '/') return <Link to="/" className={className} onClick={onNavigate}>{t('site.nav.homeLink')}</Link>;
+  return (
+    <a href="/" className={className} aria-current={current ? 'page' : undefined}
+      onClick={(e) => {
+        e.preventDefault();
+        onNavigate?.();
+        requestAnimationFrame(() => {
+          window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+          history.replaceState(history.state, '', '/');
+        });
+      }}>
+      {t('site.nav.homeLink')}
+    </a>
+  );
+}
+
 export function Nav() {
   const { t } = useI18n();
   const { pathname } = useLocation();
@@ -109,6 +129,7 @@ export function Nav() {
           <Logo onClick={close} />
           <nav className="s-nav-links" aria-label={t('site.nav.label')}>
             <ul>
+              <li><HomeLink className="s-nav-link" current={onHome && (active === null || active === 'top')} /></li>
               {NAV_LINKS.map((l) => (
                 <li key={l.id}>
                   <SectionLink id={l.id} className="s-nav-link" current={active === l.id}>{t(l.label)}</SectionLink>
@@ -132,8 +153,9 @@ export function Nav() {
       <div id="s-sheet" ref={sheet} className={cx('s-sheet', open && 'is-open')} hidden={!open}>
         <nav aria-label={t('site.nav.label')}>
           <ul className="s-sheet-links">
+            <li style={{ '--i': 0 } as CSSProperties}><HomeLink onNavigate={close} /></li>
             {NAV_LINKS.map((l, i) => (
-              <li key={l.id} style={{ '--i': i } as CSSProperties}>
+              <li key={l.id} style={{ '--i': i + 1 } as CSSProperties}>
                 <SectionLink id={l.id} onNavigate={close}>{t(l.label)}</SectionLink>
               </li>
             ))}

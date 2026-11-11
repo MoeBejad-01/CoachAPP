@@ -3,13 +3,13 @@
 // with that coach; `?role=coach|trainee` preselects the role.
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Icon, type IconName } from '../../../components/Icon';
 import { useI18n } from '../../../i18n';
 import type { StringKey } from '../../../i18n/strings';
 import { Checkbox, FormAlert, PasswordField, TextField, isEmail, isPhone, isStrongPassword } from '../../components/Field';
 import { Button, cx } from '../../components/ui';
-import { AuthError, findCoach, homeFor, signUp, type Role } from '../../services/auth';
+import { AuthError, findCoach, homeFor, safeNext, signUp, type Role } from '../../services/auth';
 import { AuthShell, OrDivider, SocialButtons } from './AuthShell';
 
 const ROLES: { id: Role; icon: IconName; title: StringKey; body: StringKey }[] = [
@@ -18,14 +18,16 @@ const ROLES: { id: Role; icon: IconName; title: StringKey; body: StringKey }[] =
 ];
 
 type Field = 'name' | 'email' | 'phone' | 'password' | 'terms';
-type CoachLink = { state: 'none' } | { state: 'loading' } | { state: 'invalid' } | { state: 'ok'; id: string; name: string };
+type CoachLink = { state: 'none' } | { state: 'loading' } | { state: 'invalid' } | { state: 'ok'; id: string; name: string; plan?: string };
 
 export function SignupPage() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const navigate = useNavigate();
+  const { search } = useLocation();
   const [params] = useSearchParams();
   const coachParam = params.get('coach');
   const roleParam = params.get('role');
+  const planParam = params.get('plan');
   const presetRole: Role | null = coachParam ? 'trainee' : roleParam === 'coach' || roleParam === 'trainee' ? roleParam : null;
 
   const [role, setRole] = useState<Role | null>(presetRole);
@@ -43,14 +45,23 @@ export function SignupPage() {
   const [failed, setFailed] = useState<'taken' | 'unknown' | null>(null);
   const [done, setDone] = useState(false);
 
+  // The coach's page supplies their name in this language and the plan picked there.
   useEffect(() => {
     if (!coachParam) return;
     let live = true;
-    findCoach(coachParam).then((c) => {
-      if (live) setCoach(c ? { state: 'ok', ...c } : { state: 'invalid' });
-    });
+    Promise.all([findCoach(coachParam), import('../../services/coachProfiles').then((m) => m.getCoachProfile(coachParam))])
+      .then(([c, profile]) => {
+        if (!live) return;
+        if (!c) {
+          setCoach({ state: 'invalid' });
+          return;
+        }
+        const L = (l: { en: string; ar?: string }) => (lang === 'ar' && l.ar ? l.ar : l.en);
+        const picked = profile && planParam ? [...profile.plans, ...profile.programs].find((x) => x.id === planParam) : undefined;
+        setCoach({ state: 'ok', id: c.id, name: profile ? L(profile.name) : c.name, plan: picked && L(picked.name) });
+      });
     return () => { live = false; };
-  }, [coachParam]);
+  }, [coachParam, planParam, lang]);
 
   // Move focus to the new step's heading (not on first load).
   useEffect(() => {
@@ -96,7 +107,10 @@ export function SignupPage() {
     try {
       await signUp({ role, ...values, coachId: coach.state === 'ok' ? coach.id : undefined });
       setDone(true);
-      window.setTimeout(() => navigate(homeFor(role)), 900);
+      // Joining a coach continues to their intake form; otherwise the role's home.
+      const join = coachParam && role === 'trainee' ? `/join/${encodeURIComponent(coachParam)}${planParam ? `?plan=${encodeURIComponent(planParam)}` : ''}` : null;
+      const to = safeNext(params.get('next')) ?? join ?? homeFor(role);
+      window.setTimeout(() => navigate(to), 900);
     } catch (err) {
       setFailed(err instanceof AuthError && err.code === 'email_taken' ? 'taken' : 'unknown');
       setLoading(false);
@@ -148,7 +162,7 @@ export function SignupPage() {
         {roleError && <p id="role-err" className="s-err" role="alert"><Icon name="alert" size={14} strokeWidth={2} />{t('site.auth.errRole')}</p>}
         <Button size="lg" block onClick={next}>{t('site.signup.continue')}<Icon name="arrow" size={18} strokeWidth={2} /></Button>
         <p className="auth-switch">
-          {t('site.signup.haveAccount')} <Link to="/login">{t('site.nav.login')}</Link>
+          {t('site.signup.haveAccount')} <Link to={`/login${search}`}>{t('site.nav.login')}</Link>
         </p>
       </AuthShell>
     );
@@ -169,6 +183,7 @@ export function SignupPage() {
           <div>
             <b>{t('site.signup.joining', { name: coach.name })}</b>
             <span>{t('site.signup.joiningBody')}</span>
+            {coach.plan && <span className="auth-invite-plan">{t('site.signup.joiningPlan', { plan: coach.plan })}</span>}
           </div>
         </div>
       )}
@@ -184,7 +199,7 @@ export function SignupPage() {
       <OrDivider />
 
       <form className="auth-form" onSubmit={submit} noValidate>
-        {failed === 'taken' && <FormAlert>{t('site.auth.errTaken')} <Link to="/login">{t('site.nav.login')}</Link></FormAlert>}
+        {failed === 'taken' && <FormAlert>{t('site.auth.errTaken')} <Link to={`/login${search}`}>{t('site.nav.login')}</Link></FormAlert>}
         {failed === 'unknown' && <FormAlert>{t('site.form.errSend')}</FormAlert>}
         <TextField id="su-name" label={t('site.auth.name')} autoComplete="name" {...field('name')} />
         <TextField id="su-email" label={t('site.form.email')} type="email" inputMode="email" autoComplete="email" dir="ltr" {...field('email')} />
@@ -196,7 +211,7 @@ export function SignupPage() {
         <Button type="submit" size="lg" block loading={loading}>{t(loading ? 'site.signup.submitting' : 'site.signup.submit')}</Button>
       </form>
       <p className="auth-switch">
-        {t('site.signup.haveAccount')} <Link to="/login">{t('site.nav.login')}</Link>
+        {t('site.signup.haveAccount')} <Link to={`/login${search}`}>{t('site.nav.login')}</Link>
       </p>
     </AuthShell>
   );
