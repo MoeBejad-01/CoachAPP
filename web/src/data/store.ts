@@ -1,11 +1,13 @@
-// A tiny persisted store. All state lives in localStorage so the dashboard
-// behaves like a real app (edits survive reloads) until a backend exists.
-// To move to a server later, replace load/save and the actions in actions.ts.
+// A tiny persisted store. State lives in localStorage so the dashboard behaves
+// like a real app (edits survive reloads), and is shared with the local sync
+// API when it's running (see sync.ts) so the iOS trainee app sees the same data.
+// To move to a real backend later, replace load/save, sync.ts and the actions in actions.ts.
 
 import { useSyncExternalStore } from 'react';
 import { normalizeLayout } from './layout';
 import { latestKg, migrateProgram } from './plan';
 import { createSeed, STATE_VERSION } from './seed';
+import { localChanged, replaceRemote, startSync } from './sync';
 import type { AppState } from './types';
 
 const KEY = 'coachhq:state';
@@ -52,17 +54,25 @@ export function getState(): AppState {
   return state;
 }
 
-export function update(recipe: (s: AppState) => AppState) {
-  state = recipe(state);
+function set(next: AppState) {
+  state = next;
   persist(state);
   listeners.forEach((l) => l());
 }
 
-export function resetState() {
-  state = createSeed();
-  persist(state);
-  listeners.forEach((l) => l());
+export function update(recipe: (s: AppState) => AppState) {
+  const prev = state;
+  set(recipe(prev));
+  if (state !== prev) localChanged();
 }
+
+export function resetState() {
+  set(createSeed());
+  replaceRemote(state);
+}
+
+// Share the workspace with the local sync API (and so with the iOS app).
+startSync({ get: getState, adopt: set, version: STATE_VERSION });
 
 function subscribe(listener: () => void) {
   listeners.add(listener);

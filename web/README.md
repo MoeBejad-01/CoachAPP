@@ -123,9 +123,31 @@ Language is shared with the dashboard (`coachhq:lang`). All motion is skipped un
 - **Contact form** (`src/site/services/contact.ts`): messages are kept in the browser under
   `coachhq:contact`. Replace `sendContactMessage` with a mail or CRM endpoint.
 
+## Sync API (shared with the mobile app)
+
+`npm run dev` (and `npm run preview`) also serve a small local API at `/api`
+(`server/syncApi.ts`, mounted as a Vite plugin). It stands in for the real
+backend so the Flutter trainee app in `../mobile` and this dashboard share one
+workspace:
+
+- The dashboard publishes its workspace on load, then sends **patches** of what
+  changed (`src/data/patch.ts`, `src/data/sync.ts`) and listens for new
+  revisions over server-sent events (`/api/events`). Edits from both sides
+  merge record by record, so a set logged on the phone shows up on the coach
+  side about a second later, and replies go back the other way.
+- The app signs in with a trainee's email and the demo password `demo1234`
+  (for example `layla.mansour@example.com`), reads `/api/app/me` and sends
+  its changes to `/api/app/ops` (`server/appOps.ts`: workouts, weigh-ins,
+  check-ins, messages, "seen", InBody scans).
+- Data is kept in `web/.data/sync.json` (git-ignored). Delete it to start over.
+  **Reset demo data** in Settings replaces the shared workspace too.
+- Without the API (a static build) the dashboard keeps working from
+  localStorage alone.
+
 ## Moving to a real backend
 
 The UI only talks to `store.ts` (reads) and `actions.ts` (writes). Replace
-`load`/`persist` and the bodies in `actions.ts` with API calls, and the pages
-keep working. The trainee mobile app would write `logs`, `weights`,
-`checkins` and trainee `messages` to the same API.
+`load`/`persist`, `sync.ts` and the bodies in `actions.ts` with API calls, and
+the pages keep working. The mobile app only uses the endpoints listed above, so
+a real backend can implement those (with real accounts) and the app needs no
+changes beyond its server address.

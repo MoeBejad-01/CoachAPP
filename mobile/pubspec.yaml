@@ -1,0 +1,26 @@
+name: coach_hq
+description: "Coach HQ trainee app: log workouts, check in and message your coach."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.14.0
+
+dependencies:
+  cupertino_icons: ^2.0.0
+  cupertino_ui: ^1.1.6
+  flutter:
+    sdk: flutter
+  http: ^1.6.0
+  image_picker: ^1.2.4
+  intl: ^0.20.3
+  material_ui: ^1.1.0
+  path_drawing: ^1.0.1
+  path_provider: ^2.1.6
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
