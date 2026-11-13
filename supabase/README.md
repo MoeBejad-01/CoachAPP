@@ -73,6 +73,30 @@ psql -q -v ON_ERROR_STOP=1 -d coachhq_scratch -f seed.sql
 psql -q -d coachhq_scratch -f tests/rls-check.sql
 ```
 
+## Test the app against it, end to end
+
+The checks above run in SQL. To exercise the app's own data layer -- `src/data/remote.ts`, the
+real `@supabase/supabase-js` client, the PostgREST wire format and Row Level Security together --
+serve the scratch database over HTTP and point the harness at it:
+
+```bash
+brew install postgrest
+# postgrest.conf: db-uri, db-schemas = "public", db-anon-role = "anon", jwt-secret = <32+ chars>
+postgrest postgrest.conf          # serves the schema on :3000, exactly as Supabase does
+```
+
+`supabase-js` calls `<url>/rest/v1/...`, so put a small proxy in front that strips the prefix,
+then mint an HS256 token with `sub` set to a coach's user id and `role` set to `authenticated`:
+
+```bash
+cd web && npx tsx scripts/e2e-remote.ts http://127.0.0.1:3001 "$COACH_JWT" "$COACH_ID" "$TRAINEE_JWT" "$TRAINEE_ID"
+```
+
+It loads a whole workspace, writes changes back (including the trainee app's habits, cardio and
+skips), reloads to confirm they stuck, and then loads the same database as the trainee to check
+she sees only her own data. The same API also runs the web app itself: set `VITE_SUPABASE_URL` to
+the proxy and the dashboard works against real PostgreSQL rather than demo data.
+
 `tests/local-shim.sql` imitates the bits of Supabase the migrations use (`auth.users`, `auth.uid()`,
 the `anon`/`authenticated` roles, a storage stub). Never run it against a real Supabase project.
 

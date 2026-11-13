@@ -169,8 +169,8 @@ function SessionDetail({ log, trainee, allLogs, names }: { log: WorkoutLog; trai
       <section className="hist-col hist-main" aria-label={log.dayName}>
         <div className="hist-actions">
           <button type="button" className="hist-icon" aria-label={t('hist.export')} title={t('hist.export')} onClick={() => download(`${trainee.firstName}-${log.date}-${log.dayName}.csv`, csvRows([log], names))}><Icon name="upload" size={16} /></button>
-          <Link to={`/trainees/${trainee.id}?tab=workouts`} className="hist-icon" aria-label={t('hist.openTrainee')} title={t('hist.openTrainee')}><Icon name="user" size={16} /></Link>
-          <Link to={`/messages/${trainee.id}`} className="hist-text-btn">{t('common.message')}</Link>
+          <Link to={`/coach/trainees/${trainee.id}?tab=workouts`} className="hist-icon" aria-label={t('hist.openTrainee')} title={t('hist.openTrainee')}><Icon name="user" size={16} /></Link>
+          <Link to={`/coach/messages/${trainee.id}`} className="hist-text-btn">{t('common.message')}</Link>
         </div>
         <div className="stack" style={{ gap: 4 }}>
           <h2 className="hist-title">{log.dayName}</h2>

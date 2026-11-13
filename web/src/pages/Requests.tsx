@@ -52,7 +52,7 @@ export function RequestsPage() {
       const id = await approveRequest(req, tier);
       setApproving(null);
       toast(t('req.approvedToast', { name: req.name }));
-      navigate(`/trainees/${id}`);
+      navigate(`/coach/trainees/${id}`);
     } catch (e) {
       toast(t('req.failed', { msg: e instanceof Error ? e.message : String(e) }));
     }

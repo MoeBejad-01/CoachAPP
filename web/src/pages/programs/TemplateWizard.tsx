@@ -47,7 +47,7 @@ export function TemplateWizard() {
   const create = () => {
     const id = createTemplate({ ...tpl, name: tpl.name.trim() });
     toast(t('tb.created', { name: tpl.name.trim() }));
-    navigate(`/programs/${id}`);
+    navigate(`/coach/programs/${id}`);
   };
   const props = { tpl, set, setGuide };
   const g = tpl.guide;
@@ -56,7 +56,7 @@ export function TemplateWizard() {
     <div className="tb-page">
       <header className="page-head">
         <div className="stack" style={{ gap: 4 }}>
-          <Link to="/programs" className="small row" style={{ gap: 4, color: 'var(--muted)' }}><Icon name="chevronLeft" size={14} />{t('tpl.title')}</Link>
+          <Link to="/coach/programs" className="small row" style={{ gap: 4, color: 'var(--muted)' }}><Icon name="chevronLeft" size={14} />{t('tpl.title')}</Link>
           <h1 className="page-title">{t('tb.newTitle')}</h1>
         </div>
         {step === 0 && state.templates.length > 0 && (

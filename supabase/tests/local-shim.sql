@@ -12,8 +12,13 @@ create table auth.users (
   email_confirmed_at timestamptz,
   raw_user_meta_data jsonb not null default '{}'::jsonb
 );
+-- Reads the signed-in user either way: psql sets request.jwt.claim.sub directly, while
+-- PostgREST (serving this schema over HTTP, as Supabase does) sets request.jwt.claims as JSON.
 create function auth.uid() returns uuid language sql stable as $$
-  select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid
+  select nullif(coalesce(
+    current_setting('request.jwt.claim.sub', true),
+    current_setting('request.jwt.claims', true)::json ->> 'sub'
+  ), '')::uuid
 $$;
 
 create schema storage;

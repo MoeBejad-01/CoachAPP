@@ -317,7 +317,7 @@ export function NewTraineePage() {
           </div>
 
           <div className="tb-foot">
-            <button type="button" className="btn" onClick={() => (step === 0 ? navigate('/trainees') : setStep((s) => s - 1))}>{step === 0 ? t('common.cancel') : <><Icon name="chevronLeft" size={15} />{t('tb.back')}</>}</button>
+            <button type="button" className="btn" onClick={() => (step === 0 ? navigate('/coach/trainees') : setStep((s) => s - 1))}>{step === 0 ? t('common.cancel') : <><Icon name="chevronLeft" size={15} />{t('tb.back')}</>}</button>
             <span className="small muted">{step === 0 && !profileValid ? t('new.profileFirst') : ''}</span>
             {last
               ? <button type="button" className="btn primary" onClick={create}><Icon name="check" size={15} />{t('new.create')}</button>

@@ -30,10 +30,10 @@ export function Layout() {
     <div className="shell" data-theme={theme}>
       <nav className="sidebar" aria-label={t('nav.primary')}>
         <div className="side-top">
-          <NavLink to="/settings" className="side-icon" aria-label={t('nav.settings')}><Icon name="user" size={17} /></NavLink>
+          <NavLink to="/coach/settings" className="side-icon" aria-label={t('nav.settings')}><Icon name="user" size={17} /></NavLink>
           <div className="row" style={{ gap: 4 }}>
             <button type="button" className="side-icon" aria-label={t('nav.switchLang')} title={t('nav.switchLang')} onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}><Icon name="globe" size={17} /></button>
-            <NavLink to="/settings" className="side-icon" aria-label={t('nav.settings')}><Icon name="sliders" size={17} /></NavLink>
+            <NavLink to="/coach/settings" className="side-icon" aria-label={t('nav.settings')}><Icon name="sliders" size={17} /></NavLink>
           </div>
         </div>
         <div className="brand">{state.coach.businessName}</div>
@@ -61,7 +61,7 @@ export function Layout() {
             <span className="grow">{t('nav.coachMode')}</span>
             <span className="switch on" aria-hidden="true"><span /></span>
           </button>
-          <NavLink to="/settings" className="nav-link">
+          <NavLink to="/coach/settings" className="nav-link">
             <span className="avatar" style={{ width: 24, height: 24, background: 'var(--side-strong)', color: 'var(--side)', fontSize: 10 }}>{state.coach.name.split(' ').map((w) => w[0]).slice(0, 2).join('')}</span>
             <span className="grow ellipsis">{state.coach.name}</span>
             <span className="nav-chev"><Icon name="chevron" size={14} /></span>
