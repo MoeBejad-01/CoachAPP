@@ -5,7 +5,7 @@ import { useAppState } from '../data/store';
 import type { WeekTargets } from '../data/types';
 import { Icon } from '../components/Icon';
 import { useT, type T } from '../i18n';
-import { dayOfWeek, fmtAgo, fmtDay, fmtDow, fmtTime, todayISO } from '../lib/dates';
+import { addDays, dayOfWeek, fmtAgo, fmtDay, fmtDow, fmtTime, startOfWeek, todayISO } from '../lib/dates';
 import { fmtKg } from '../lib/util';
 import { TabScreen, useTraineeApp } from './TraineeApp';
 
@@ -21,16 +21,19 @@ export function TodayScreen() {
   const targets = p?.plan[wi]?.targets;
   const todayPlan = week.find((d) => d.date === today);
   // Next session this week; if none is left, offer the earliest missed one as a make-up.
-  const upcoming = week.find((d) => d.date >= today && d.planned && !d.log);
+  const upcomingThisWeek = week.find((d) => d.date >= today && d.planned && !d.log);
   const missed = started ? week.find((d) => d.date < today && d.planned && !d.log) : undefined;
-  const next = upcoming ?? missed;
-  const isMakeUp = !upcoming && !!missed;
+  // Nothing left this week (or the program starts next week): show the first session of next week.
+  const nextWeekFirst = upcomingThisWeek || missed ? undefined : weekPlan(state, trainee, logs, addDays(startOfWeek(today), 7)).find((d) => d.planned);
+  const upcoming = upcomingThisWeek ?? nextWeekFirst;
+  const next = upcomingThisWeek ?? missed ?? nextWeekFirst;
+  const isMakeUp = !upcomingThisWeek && !!missed;
   const doneToday = todayPlan?.log;
   const pending = state.inbodyRequests.find((r) => r.traineeId === trainee.id && r.status === 'pending');
   const checkinDue = (todayPlan?.isCheckin && !todayPlan.checkinDone) || stats.missedCheckins > 0;
   const unseen = state.messages.filter((m) => m.traineeId === trainee.id && m.from === 'coach' && m.seen === false);
   const note = state.notes.filter((n) => n.traineeId === trainee.id && n.shared).sort((a, b) => b.at.localeCompare(a.at))[0];
-  const nextSession = state.sessions.filter((s) => s.traineeId === trainee.id && s.start >= new Date().toISOString().slice(0, 16)).sort((a, b) => a.start.localeCompare(b.start))[0];
+  const nextSession = state.sessions.filter((s) => s.traineeId === trainee.id && s.location !== 'Focus block' && s.start >= new Date().toISOString().slice(0, 16)).sort((a, b) => a.start.localeCompare(b.start))[0];
   const hour = new Date().getHours();
   const greet = hour < 12 ? t('ta.greet.morning') : hour < 18 ? t('ta.greet.afternoon') : t('ta.greet.evening');
   const doneThisWeek = week.filter((d) => d.log).length;
@@ -147,7 +150,7 @@ export function TodayScreen() {
           <div className="ta-row">
             <span className="ta-task-icon ok"><Icon name="calendar" size={18} /></span>
             <span className="stack grow" style={{ gap: 2 }}>
-              <span style={{ fontWeight: 600 }}>{t('ta.today.sessionWith', { name: state.coach.name.split(' ')[0] })}</span>
+              <span style={{ fontWeight: 600 }}>{nextSession.title}</span>
               <span className="small muted">{fmtDay(nextSession.start.slice(0, 10))} · {fmtTime(nextSession.start)} · {t(`location.${nextSession.location}`)}</span>
             </span>
           </div>

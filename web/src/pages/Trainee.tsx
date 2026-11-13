@@ -74,7 +74,7 @@ export function TraineePage() {
               <div className="row wrap" style={{ gap: 10 }}>
                 <h1 style={{ fontSize: 22, fontWeight: 600, letterSpacing: '-0.02em' }}>{fullName(trainee)}</h1>
                 {badges.map((b) => b === 'group' ? <GroupChip key={b} group={stats.group} />
-                  : b === 'plan' ? <span key={b} className="chip">{t(`mode.${trainee.mode}`)} · {t(`cycle.${trainee.membership.cycle}`)}</span>
+                  : b === 'plan' ? <span key={b} className="chip">{t(`tier.${trainee.tier}`)} · {t(`cycle.${trainee.membership.cycle}`)}</span>
                   : <span key={b} className="chip outline">{t(`goal.${trainee.goalType}`)}</span>)}
               </div>
               {details.length > 0 && <div className="small muted" dir="auto" style={{ textAlign: 'start' }}>{details.join(' · ')}</div>}
@@ -164,7 +164,7 @@ function statFor(id: StatId, { state, trainee, stats, logs, t, today, warnAt }: 
     case 'renewal': {
       const m = trainee.membership;
       const d = daysBetween(today, m.renewsOn);
-      return { label: t('custom.stat.renewal'), value: fmtDay(m.renewsOn), sub: `${m.paid ? t('billing.paid') : t('custom.unpaid')} · ${formatMoney(state, m.price)}`, tone: !m.paid && d <= 7 ? 'warn' : '' };
+      return { label: t('custom.stat.renewal'), value: fmtDay(m.renewsOn), sub: `${m.paid ? t('billing.paid') : t('custom.unpaid')} · ${formatMoney(m.price)}`, tone: !m.paid && d <= 7 ? 'warn' : '' };
     }
     case 'sessions30': {
       const from = addDays(today, -30);

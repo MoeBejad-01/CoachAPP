@@ -1,5 +1,6 @@
-export function uid(prefix = ''): string {
-  return prefix + Math.random().toString(36).slice(2, 10);
+/** New record id. A UUID, so the same ids work in the browser store and in the database. */
+export function uid(_prefix = ''): string {
+  return crypto.randomUUID();
 }
 
 /** Deterministic PRNG so the generated demo data is stable between resets. */

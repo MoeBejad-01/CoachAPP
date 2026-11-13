@@ -1,6 +1,8 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { pendingRequests } from '../data/joinRequests';
 import { unreadTotal } from '../data/selectors';
-import { useAppState } from '../data/store';
+import { useAppState, useSyncStatus } from '../data/store';
+import { useAuth } from '../auth/AuthProvider';
 import { useI18n } from '../i18n';
 import { Icon, type IconName } from './Icon';
 
@@ -20,7 +22,10 @@ export function Layout() {
   const { t, lang, setLang } = useI18n();
   const navigate = useNavigate();
   const unread = unreadTotal(state);
+  const waiting = pendingRequests(state.joinRequests).length;
   const theme = state.coach.theme ?? 'dark';
+  const auth = useAuth();
+  const sync = useSyncStatus();
   return (
     <div className="shell" data-theme={theme}>
       <nav className="sidebar" aria-label={t('nav.primary')}>
@@ -37,6 +42,7 @@ export function Layout() {
           <div className="nav-label">{t('nav.general')}</div>
           <Item to="/" end icon="grid" label={t('nav.overview')} />
           <Item to="/trainees" icon="users" label={t('nav.trainees')} extra={<span className="nav-count">{state.trainees.length}</span>} />
+          <Item to="/requests" icon="user" label={t('nav.requests')} extra={waiting > 0 ? <span className="nav-badge">{waiting}</span> : null} />
           <Item to="/history" icon="calendar" label={t('nav.history')} />
           <Item to="/programs" icon="clipboard" label={t('nav.programs')} />
           <Item to="/messages" icon="message" label={t('nav.messages')} extra={unread > 0 ? <span className="nav-badge">{unread}</span> : null} />
@@ -55,10 +61,20 @@ export function Layout() {
             <span className="switch on" aria-hidden="true"><span /></span>
           </button>
           <NavLink to="/settings" className="nav-link">
-            <span className="avatar" style={{ width: 24, height: 24, background: '#3a3d45', color: '#fff', fontSize: 10 }}>{state.coach.name.split(' ').map((w) => w[0]).slice(0, 2).join('')}</span>
+            <span className="avatar" style={{ width: 24, height: 24, background: 'var(--side-strong)', color: 'var(--side)', fontSize: 10 }}>{state.coach.name.split(' ').map((w) => w[0]).slice(0, 2).join('')}</span>
             <span className="grow ellipsis">{state.coach.name}</span>
             <span className="nav-chev"><Icon name="chevron" size={14} /></span>
           </NavLink>
+          {auth.status === 'ready' && (
+            <>
+              <span className={`sync-state${sync.error ? ' err' : ''}`} title={sync.error ?? undefined}>
+                <span className="sync-dot" />{sync.error ? t('auth.syncError') : sync.pending ? t('auth.saving') : t('auth.saved')}
+              </span>
+              <button type="button" className="nav-link" style={{ border: 0, background: 'transparent', width: '100%', textAlign: 'start' }} onClick={() => void auth.signOut()}>
+                <Icon name="chevronLeft" size={17} /><span className="grow">{t('auth.signOut')}</span>
+              </button>
+            </>
+          )}
           <span className="side-copy">© {new Date().getFullYear()} {state.coach.businessName}</span>
         </div>
       </nav>

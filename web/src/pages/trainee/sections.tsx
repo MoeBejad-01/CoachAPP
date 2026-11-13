@@ -211,7 +211,7 @@ function WeekCard({ trainee, stats }: SectionProps) {
             <span className="small faint">{fmtDow(d.date)} {Number(d.date.slice(8))}</span>
             <span className="stack" style={{ gap: 2 }}>
               <span style={{ fontWeight: 500, color: d.planned || d.log ? 'var(--ink)' : 'var(--faint)' }}>{label}</span>
-              {d.isCheckin && <span className="xs muted">{t('week.checkinDay')}{d.checkinDone ? ` · ${t('week.submitted')}` : past ? ` · ${t('week.missedLower')}` : ''}</span>}
+              {d.isCheckin && <span className="xs muted">{t('week.checkinDay')}{d.checkinDone ? ` · ${t('week.submitted')}` : past && d.date >= trainee.joinedAt ? ` · ${t('week.missedLower')}` : ''}</span>}
             </span>
             {chip}
           </div>
@@ -372,7 +372,7 @@ function ProfileCard({ trainee }: SectionProps) {
   const rows: [string, string][] = [
     [t('form.email'), trainee.email || '—'],
     [t('form.phone'), trainee.phone || '—'],
-    [t('form.coachingType'), t(`mode.${trainee.mode}`)],
+    [t('form.coachingType'), t(`tier.${trainee.tier}`)],
     [t('custom.goalType'), t(`goal.${trainee.goalType}`)],
     [t('form.sessionsPerWeek'), String(trainee.frequency)],
     [t('form.checkinDay'), weekdayName(trainee.checkinDay)],
@@ -393,7 +393,6 @@ function ProfileCard({ trainee }: SectionProps) {
 }
 
 function MembershipCard({ trainee }: SectionProps) {
-  const state = useAppState();
   const t = useT();
   const toast = useToast();
   const m = trainee.membership;
@@ -401,8 +400,8 @@ function MembershipCard({ trainee }: SectionProps) {
     <Card title={t('custom.section.membership')} action={m.paid ? <span className="chip ok">{t('billing.paid')}</span> : <button type="button" className="btn sm" onClick={() => { markPaid(trainee.id); toast(t('billing.recorded', { name: trainee.firstName })); }}>{t('billing.markPaid')}</button>}>
       <div className="card-body">
         <dl className="kv">
-          <dt>{t('billing.plan')}</dt><dd>{t(`mode.plan.${trainee.mode}`)}</dd>
-          <dt>{t('billing.price')}</dt><dd className="mono">{formatMoney(state, m.price)}</dd>
+          <dt>{t('billing.plan')}</dt><dd>{t(`tier.${trainee.tier}`)}</dd>
+          <dt>{t('billing.price')}</dt><dd className="mono">{formatMoney(m.price)}</dd>
           <dt>{t('billing.cycle')}</dt><dd>{t(`cycle.${m.cycle}`)}</dd>
           <dt>{t('billing.renews')}</dt><dd>{fmtDay(m.renewsOn)}</dd>
         </dl>

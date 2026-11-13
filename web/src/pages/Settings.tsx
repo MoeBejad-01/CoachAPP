@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { updateCoach } from '../data/actions';
-import { getState, resetState, useAppState } from '../data/store';
+import { getState, isRemote, reloadRemote, resetState, useAppState } from '../data/store';
+import { useAuth } from '../auth/AuthProvider';
+import { supabase } from '../lib/supabase';
 import { Card, Modal, useToast } from '../components/ui';
 import { useI18n, type Lang } from '../i18n';
 
@@ -10,6 +12,19 @@ export function SettingsPage() {
   const toast = useToast();
   const [f, setF] = useState(state.coach);
   const [confirm, setConfirm] = useState(false);
+  const [loadingDemo, setLoadingDemo] = useState(false);
+  const auth = useAuth();
+  const remote = isRemote();
+  /** Fills this (empty) coach account with the demo workspace, server side. */
+  const loadDemo = async () => {
+    if (!supabase || !auth.userId) return;
+    setLoadingDemo(true);
+    const { error } = await supabase.rpc('load_demo_data', { c: auth.userId });
+    if (!error) await reloadRemote();
+    setLoadingDemo(false);
+    setF(getState().coach);
+    toast(error ? t('settings.demoFailed', { msg: error.message }) : t('settings.demoLoaded'));
+  };
   const dirty = JSON.stringify(f) !== JSON.stringify(state.coach);
 
   return (
@@ -29,11 +44,9 @@ export function SettingsPage() {
               <label className="field">{t('settings.titleField')}<input className="input" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></label>
               <label className="field">{t('form.email')}<input className="input" type="email" dir="ltr" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></label>
               <label className="field">{t('settings.business')}<input className="input" value={f.businessName} onChange={(e) => setF({ ...f, businessName: e.target.value })} /></label>
-              <label className="field">{t('settings.currency')}
-                <select className="select" value={f.currency} onChange={(e) => setF({ ...f, currency: e.target.value })}>
-                  {['USD', 'EUR', 'GBP', 'SAR', 'AED', 'KWD', 'QAR', 'CAD', 'AUD'].map((c) => <option key={c}>{c}</option>)}
-                </select>
-              </label>
+              <div className="field">{t('settings.currency')}
+                <span className="input" style={{ display: 'flex', alignItems: 'center', color: 'var(--muted)' }}>{t('currency.sarName')}</span>
+              </div>
               <label className="field">{t('settings.theme')}
                 <select className="select" value={state.coach.theme ?? 'dark'} onChange={(e) => updateCoach({ theme: e.target.value as 'light' | 'dark' })}>
                   <option value="dark">{t('settings.themeDark')}</option>
@@ -56,7 +69,7 @@ export function SettingsPage() {
 
         <Card title={t('settings.demo')}>
           <div className="card-body">
-            <p className="small muted" style={{ lineHeight: 1.6 }}>{t('settings.demoBody')}</p>
+            <p className="small muted" style={{ lineHeight: 1.6 }}>{t(remote ? 'settings.demoBodyRemote' : 'settings.demoBody')}</p>
             <dl className="kv">
               <dt>{t('nav.trainees')}</dt><dd className="mono">{state.trainees.length}</dd>
               <dt>{t('settings.templates')}</dt><dd className="mono">{state.templates.length}</dd>
@@ -65,8 +78,10 @@ export function SettingsPage() {
             </dl>
           </div>
           <div className="card-foot">
-            <span />
-            <button type="button" className="btn danger" onClick={() => setConfirm(true)}>{t('settings.reset')}</button>
+            <span className="small muted">{remote ? (state.trainees.length ? t('settings.demoHasData') : t('settings.demoEmpty')) : ''}</span>
+            {remote
+              ? <button type="button" className="btn primary" disabled={state.trainees.length > 0 || loadingDemo} onClick={() => void loadDemo()}>{loadingDemo ? t('auth.wait') : t('settings.loadDemo')}</button>
+              : <button type="button" className="btn danger" onClick={() => setConfirm(true)}>{t('settings.reset')}</button>}
           </div>
         </Card>
       </div>

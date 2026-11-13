@@ -187,7 +187,7 @@ export function OverviewPage() {
                   return (
                     <div key={s.id} className="list-row" style={{ gap: 14 }}>
                       <span className="mono" style={{ fontSize: 13, width: 44 }}>{s.start.slice(11, 16)}</span>
-                      <span style={{ width: 2, alignSelf: 'stretch', background: s.location === 'In person' ? 'var(--accent)' : 'var(--neutral)', borderRadius: 1 }} />
+                      <span style={{ width: 2, alignSelf: 'stretch', background: s.location === 'Focus block' ? 'var(--neutral)' : 'var(--accent)', borderRadius: 1 }} />
                       <div className="stack grow" style={{ gap: 2 }}>
                         {tr ? <Link to={`/trainees/${tr.id}`} style={{ color: 'var(--ink)', fontWeight: 500 }}>{fullName(tr)}</Link> : <span style={{ fontWeight: 500 }}>{s.title}</span>}
                         <span className="small muted">{tr ? s.title : t('common.minutes', { n: s.durationMin })}</span>
@@ -275,7 +275,7 @@ export function OverviewPage() {
                   <Link key={tr.id} to="/billing" className="list-row">
                     <div className="stack grow" style={{ gap: 2 }}>
                       <span style={{ fontWeight: 500 }}>{fullName(tr)}</span>
-                      <span className="small muted">{t(`mode.plan.${tr.mode}`)} · {formatMoney(state, tr.membership.price)}</span>
+                      <span className="small muted">{t(`tier.${tr.tier}`)} · {formatMoney(tr.membership.price)}</span>
                     </div>
                     <span style={{ fontSize: 13, color: 'var(--ink-2)' }}>{fmtDay(tr.membership.renewsOn)}</span>
                   </Link>

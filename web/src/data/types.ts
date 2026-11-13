@@ -2,7 +2,8 @@
 // Dates are ISO strings (YYYY-MM-DD for days, full ISO for timestamps).
 
 export type TraineeStatus = 'onboarding' | 'active' | 'paused' | 'inactive';
-export type CoachingMode = 'online' | 'inperson' | 'hybrid';
+/** Online coaching plan; all coaching is remote. */
+export type PlanTier = 'essential' | 'premium' | 'elite';
 export type GoalType = 'muscle' | 'strength' | 'fatloss' | 'sport' | 'rehab' | 'health';
 
 export interface Exercise {
@@ -114,7 +115,7 @@ export interface Trainee {
   phone: string;
   birthDate: string;
   heightCm: number;
-  mode: CoachingMode;
+  tier: PlanTier;
   status: TraineeStatus;
   goalType: GoalType;
   goals: Goal[];
@@ -196,7 +197,8 @@ export interface Session {
   title: string;
   start: string;
   durationMin: number;
-  location: 'In person' | 'Remote' | 'Video call';
+  /** Calls with a trainee, or a coach's own focus time (no trainee). */
+  location: 'Video call' | 'Voice call' | 'Focus block';
 }
 
 export type WidgetId = 'kpis' | 'attention' | 'sessions' | 'messages' | 'roster' | 'adherence' | 'prs' | 'renewals';
@@ -291,7 +293,7 @@ export interface InBodyScan {
   waterL: number;
   score: number;
   /** Uploaded report (name always; data URL only for small files). */
-  file?: { name: string; type: string; dataUrl?: string };
+  file?: { name: string; type: string; dataUrl?: string; /** Path in Supabase storage, once uploaded. */ path?: string };
   source: 'trainee' | 'coach';
 }
 
@@ -318,7 +320,6 @@ export interface Coach {
   title: string;
   email: string;
   businessName: string;
-  currency: string;
   /** Dashboard colour theme; missing means dark. */
   theme?: 'light' | 'dark';
 }
@@ -339,4 +340,67 @@ export interface AppState {
   inbody: InBodyScan[];
   inbodyRequests: InBodyRequest[];
   metricEntries: MetricEntry[];
+  /** Column layouts a coach saved from earlier spreadsheet imports. */
+  importLayouts: ImportLayout[];
+  /** People who asked to join from the coach's public page, newest first. */
+  joinRequests: JoinRequest[];
+}
+
+export type JoinRequestStatus = 'pending' | 'approved' | 'declined';
+
+/**
+ * Someone who found the coach's public page (/c/<handle>) and asked to train with them.
+ * Written by the public site, read here; the coach approves it into a trainee, declines
+ * it, or messages them on WhatsApp first. See supabase/migrations/..._public_pages.sql.
+ */
+export interface JoinRequest {
+  id: string;
+  name: string;
+  email: string;
+  /** Digits only, E.164 without the +, so it can open wa.me directly. */
+  phone: string;
+  answers: JoinAnswers;
+  /** The plan they picked on the page, or '' / 'unsure'. */
+  planId: string;
+  message: string;
+  status: JoinRequestStatus;
+  sentAt: string;
+  /** Set once approved: the trainee this became. */
+  traineeId: string | null;
+}
+
+/** The intake answers the public form collects. Its shape belongs to that form, so every field is optional here. */
+export interface JoinAnswers {
+  birthDate?: string;
+  gender?: string;
+  city?: string;
+  heightCm?: number;
+  weightKg?: number;
+  targetWeightKg?: number | null;
+  bodyFatPct?: number | null;
+  activity?: string;
+  sleepHours?: number | null;
+  goal?: string;
+  experience?: string;
+  /** Weekdays they can train, 0 = Sunday. */
+  days?: number[];
+  sessionMinutes?: number;
+  place?: string;
+  lifts?: { squat: number | null; bench: number | null; deadlift: number | null };
+  painAreas?: string[];
+  painNotes?: string;
+  conditions?: string[];
+  medications?: string;
+  start?: string;
+  units?: 'metric' | 'imperial';
+}
+
+export interface ImportLayout {
+  id: string;
+  name: string;
+  /** Normalised header row text, used to recognise the same file format again. */
+  signature: string;
+  headerRow: number;
+  roles: string[];
+  split: 'column' | 'sheets' | 'titles';
 }

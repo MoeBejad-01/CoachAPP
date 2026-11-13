@@ -109,7 +109,7 @@ export function seedTemplates(updatedAt: string): Template[] {
       id: 'tpl-fat',
       name: 'Fat loss + conditioning',
       summary: 'Strength circuits plus intervals, with a daily step target.',
-      tags: ['All levels', 'Hybrid'],
+      tags: ['All levels', 'Strength + cardio'],
       weeks: 12,
       loadMethod: 'RPE + kg target',
       progression: 'Double progression',

@@ -5,9 +5,10 @@ import { addDays, todayISO } from '../lib/dates';
 import { uid } from '../lib/util';
 import { defaultLayout, normalizeLayout } from './layout';
 import { basisFor, buildPlan, cloneDays, latestKg } from './plan';
+import { planName } from './plans';
 import { update } from './store';
 import type {
-  AppState, AssignedProgram, CheckIn, Coach, CustomCard, Exercise, InBodyScan, Goal, Note, ProgramDay, Session, Template, Trainee, TraineeLayout, TraineeStatus, WidgetId, WorkoutLog,
+  AppState, AssignedProgram, CheckIn, Coach, CustomCard, Exercise, ImportLayout, InBodyScan, Membership, Goal, Note, ProgramDay, Session, Template, Trainee, TraineeLayout, TraineeStatus, WidgetId, WorkoutLog,
 } from './types';
 
 const mapTrainee = (s: AppState, id: string, fn: (t: Trainee) => Trainee): AppState => ({
@@ -17,35 +18,53 @@ const mapTrainee = (s: AppState, id: string, fn: (t: Trainee) => Trainee): AppSt
 
 // ---------- Trainees ----------
 
-export type NewTrainee = Omit<Trainee, 'id' | 'joinedAt' | 'lastSeenAt' | 'tone' | 'program' | 'status' | 'membership' | 'pinnedNote' | 'goals'> & {
-  goalLabel: string;
+export type NewTrainee = Omit<Trainee, 'id' | 'joinedAt' | 'lastSeenAt' | 'tone' | 'program' | 'status' | 'membership' | 'goals'> & {
+  goals: Omit<Goal, 'id'>[];
+  /** Starting body weight; logged as the first weigh-in so weekly targets and charts have a baseline. */
+  weightKg: number | null;
   templateId: string | null;
   startDate: string;
+  membership: Pick<Membership, 'price' | 'cycle' | 'paid'>;
+  /** Sent as the first chat message; the trainee sees it when they open the app. */
+  welcome: string;
+  inbodyRequest: { note: string; message: string } | null;
 };
 
 export function createTrainee(input: NewTrainee): string {
   const id = uid('t');
   update((s) => {
     const tpl = s.templates.find((t) => t.id === input.templateId) ?? null;
-    const price = input.mode === 'online' ? 150 : input.mode === 'hybrid' ? 280 : 420;
-    const { goalLabel, templateId: _tplId, startDate, ...rest } = input;
+    const { goals, weightKg, templateId: _tplId, startDate, membership, welcome, inbodyRequest, ...rest } = input;
+    const now = new Date().toISOString();
+    const today = todayISO();
     const trainee: Trainee = {
       ...rest,
       id,
       status: 'onboarding',
-      joinedAt: todayISO(),
-      lastSeenAt: new Date().toISOString(),
+      joinedAt: today,
+      lastSeenAt: now,
       tone: s.trainees.length % 6,
-      goals: goalLabel.trim() ? [{ id: uid('g'), label: goalLabel.trim(), unit: '', start: 0, current: 0, target: 100 }] : [],
+      goals: goals.filter((g) => g.label.trim()).map((g) => ({ ...g, label: g.label.trim(), id: uid('g') })),
       program: null,
       membership: {
-        plan: input.mode === 'online' ? 'Online coaching' : input.mode === 'hybrid' ? 'Hybrid · 2 sessions/week' : 'In person · 3 sessions/week',
-        price, cycle: 'monthly', renewsOn: addDays(startDate, 30), paid: false,
+        plan: planName(input.tier),
+        price: membership.price, cycle: membership.cycle, paid: membership.paid,
+        // A paid first period runs from the start date; an unpaid one is due on the start date.
+        renewsOn: membership.paid ? addDays(startDate, membership.cycle === 'quarterly' ? 91 : 30) : startDate,
       },
-      pinnedNote: '',
     };
-    if (tpl) trainee.program = programFromTemplate(tpl, startDate, trainee);
-    return { ...s, trainees: [...s.trainees, trainee] };
+    if (tpl) trainee.program = programFromTemplate(tpl, startDate, trainee, weightKg);
+    return {
+      ...s,
+      trainees: [...s.trainees, trainee],
+      weights: weightKg ? [...s.weights, { traineeId: id, date: today, kg: weightKg }] : s.weights,
+      messages: [
+        ...s.messages,
+        ...(welcome.trim() ? [{ id: uid('m'), traineeId: id, from: 'coach' as const, text: welcome.trim(), at: now, read: true, seen: false }] : []),
+        ...(inbodyRequest ? [{ id: uid('m'), traineeId: id, from: 'coach' as const, text: inbodyRequest.message, at: now, read: true, seen: false }] : []),
+      ],
+      inbodyRequests: inbodyRequest ? [...s.inbodyRequests, { id: uid('ibr'), traineeId: id, requestedAt: now, note: inbodyRequest.note, status: 'pending' as const }] : s.inbodyRequests,
+    };
   });
   return id;
 }
@@ -309,6 +328,17 @@ export function addMetricEntry(traineeId: string, cardId: string, date: string, 
 
 export function deleteMetricEntry(id: string) {
   update((s) => ({ ...s, metricEntries: s.metricEntries.filter((m) => m.id !== id) }));
+}
+
+// ---------- Training file imports ----------
+
+/** Remembers a spreadsheet's column layout; a layout with the same headers is replaced. */
+export function saveImportLayout(layout: Omit<ImportLayout, 'id'>) {
+  update((s) => ({ ...s, importLayouts: [...s.importLayouts.filter((x) => x.signature !== layout.signature), { ...layout, id: uid('il') }] }));
+}
+
+export function deleteImportLayout(id: string) {
+  update((s) => ({ ...s, importLayouts: s.importLayouts.filter((x) => x.id !== id) }));
 }
 
 export function updateCoach(patch: Partial<Coach>) {

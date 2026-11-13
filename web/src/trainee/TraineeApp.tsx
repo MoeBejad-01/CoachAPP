@@ -9,6 +9,7 @@ import { computeStats, fullName, logsByTrainee, type TraineeStats } from '../dat
 import { useAppState } from '../data/store';
 import type { Trainee, WorkoutLog } from '../data/types';
 import { Icon, type IconName } from '../components/Icon';
+import { useAuth } from '../auth/AuthProvider';
 import { useI18n } from '../i18n';
 import './trainee.css';
 
@@ -48,6 +49,8 @@ export function TraineeAppRoot() {
 /** /app with no trainee picks the first active one (demo sign-in). */
 export function TraineeAppIndex() {
   const state = useAppState();
+  const auth = useAuth();
+  if (auth.role === 'trainee' && auth.traineeId) return <Navigate to={`/app/${auth.traineeId}`} replace />;
   const first = state.trainees.find((t) => t.status === 'active') ?? state.trainees[0];
   return first ? <Navigate to={`/app/${first.id}`} replace /> : <Navigate to="/" replace />;
 }
@@ -58,6 +61,7 @@ function PreviewStage({ children }: { children: ReactNode }) {
   const state = useAppState();
   const { trainee } = useTraineeApp();
   const navigate = useNavigate();
+  const auth = useAuth();
   return (
     <div className="ta-stage">
       <aside className="ta-side">
@@ -66,15 +70,25 @@ function PreviewStage({ children }: { children: ReactNode }) {
           <h1 style={{ fontSize: 22, fontWeight: 600, letterSpacing: '-0.02em' }}>{t('ta.preview.title')}</h1>
           <p className="small muted" style={{ lineHeight: 1.5 }}>{t('ta.preview.desc')}</p>
         </div>
-        <label className="field">{t('ta.preview.signedInAs')}
-          <select className="select" value={trainee.id} onChange={(e) => navigate(`/app/${e.target.value}`)}>
-            {state.trainees.map((x) => <option key={x.id} value={x.id}>{fullName(x)}</option>)}
-          </select>
-        </label>
-        <div className="stack" style={{ gap: 8 }}>
-          <Link to={`/trainees/${trainee.id}`} className="btn"><Icon name="chevronLeft" size={16} />{t('ta.preview.coachView')}</Link>
-          <button type="button" className="btn ghost" onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}><Icon name="globe" size={16} />{t('nav.switchLang')}</button>
-        </div>
+        {auth.role === 'trainee' ? (
+          <div className="stack" style={{ gap: 8 }}>
+            <span className="small muted">{t('auth.signedInAs', { email: auth.email ?? '' })}</span>
+            <button type="button" className="btn" onClick={() => void auth.signOut()}>{t('auth.signOut')}</button>
+            <button type="button" className="btn ghost" onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}><Icon name="globe" size={16} />{t('nav.switchLang')}</button>
+          </div>
+        ) : (
+          <>
+            <label className="field">{t('ta.preview.signedInAs')}
+              <select className="select" value={trainee.id} onChange={(e) => navigate(`/app/${e.target.value}`)}>
+                {state.trainees.map((x) => <option key={x.id} value={x.id}>{fullName(x)}</option>)}
+              </select>
+            </label>
+            <div className="stack" style={{ gap: 8 }}>
+              <Link to={`/trainees/${trainee.id}`} className="btn"><Icon name="chevronLeft" size={16} />{t('ta.preview.coachView')}</Link>
+              <button type="button" className="btn ghost" onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}><Icon name="globe" size={16} />{t('nav.switchLang')}</button>
+            </div>
+          </>
+        )}
         <ul className="ta-side-list small muted">
           <li>{t('ta.preview.point1')}</li>
           <li>{t('ta.preview.point2')}</li>

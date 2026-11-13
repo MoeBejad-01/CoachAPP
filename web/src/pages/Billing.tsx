@@ -44,9 +44,9 @@ export function BillingPage() {
       </header>
 
       <section className="kpis" aria-label={t('billing.summary')}>
-        <div className="kpi"><span className="kpi-label">{t('billing.mrr')}</span><span className="kpi-value">{formatMoney(state, monthly)}</span><span className="kpi-sub">{t('billing.mrrSub')}</span></div>
-        <div className="kpi"><span className="kpi-label">{t('billing.renewing')}</span><span className="kpi-value">{upcoming.length}</span><span className="kpi-sub">{t('billing.expected', { v: formatMoney(state, upcoming.reduce((n, r) => n + r.tr.membership.price, 0)) })}</span></div>
-        <button type="button" className="kpi" onClick={() => setFilter('overdue')}><span className="kpi-label">{t('common.overdue')}</span><span className="kpi-value" style={{ color: overdue.length ? 'var(--warn)' : undefined }}>{overdue.length}</span><span className="kpi-sub">{t('billing.outstanding', { v: formatMoney(state, overdue.reduce((n, r) => n + r.tr.membership.price, 0)) })}</span></button>
+        <div className="kpi"><span className="kpi-label">{t('billing.mrr')}</span><span className="kpi-value">{formatMoney(monthly)}</span><span className="kpi-sub">{t('billing.mrrSub')}</span></div>
+        <div className="kpi"><span className="kpi-label">{t('billing.renewing')}</span><span className="kpi-value">{upcoming.length}</span><span className="kpi-sub">{t('billing.expected', { v: formatMoney(upcoming.reduce((n, r) => n + r.tr.membership.price, 0)) })}</span></div>
+        <button type="button" className="kpi" onClick={() => setFilter('overdue')}><span className="kpi-label">{t('common.overdue')}</span><span className="kpi-value" style={{ color: overdue.length ? 'var(--warn)' : undefined }}>{overdue.length}</span><span className="kpi-sub">{t('billing.outstanding', { v: formatMoney(overdue.reduce((n, r) => n + r.tr.membership.price, 0)) })}</span></button>
       </section>
 
       <section className="card" aria-label={t('billing.memberships')}>
@@ -66,8 +66,8 @@ export function BillingPage() {
             {shown.map(({ tr, days, status }) => (
               <div key={tr.id} className="dg-row" style={{ gridTemplateColumns: COLS }}>
                 <span className="row" style={{ gap: 10, minWidth: 0 }}><Avatar trainee={tr} size={30} /><Link to={`/trainees/${tr.id}`} className="ellipsis" style={{ color: 'var(--ink)', fontWeight: 500 }}>{fullName(tr)}</Link></span>
-                <span className="ellipsis" style={{ color: 'var(--ink-2)' }}>{t(`mode.plan.${tr.mode}`)}</span>
-                <span className="mono small">{formatMoney(state, tr.membership.price)}</span>
+                <span className="ellipsis" style={{ color: 'var(--ink-2)' }}>{t(`tier.${tr.tier}`)}</span>
+                <span className="mono small">{formatMoney(tr.membership.price)}</span>
                 <span style={{ color: 'var(--ink-2)' }}>{t(`cycle.${tr.membership.cycle}`)}</span>
                 <span style={{ color: 'var(--ink-2)' }}>{fmtDay(tr.membership.renewsOn)}{days >= 0 && days <= 7 && <span className="xs faint"> · {days === 0 ? t('common.todayLower') : t('billing.inDays', { n: days })}</span>}</span>
                 <span>{status === 'paid' ? <span className="chip ok">{t('billing.paid')}</span> : status === 'due' ? <span className="chip accent">{t('billing.dueSoon')}</span> : <span className="chip warn">{t('common.overdue')}</span>}</span>

@@ -9,7 +9,7 @@ import { Modal, useToast } from '../components/ui';
 import { useT } from '../i18n';
 import { addDays, fmtDay, fmtDow, fmtShort, startOfWeek, todayISO } from '../lib/dates';
 
-const LOCATIONS: Session['location'][] = ['In person', 'Remote', 'Video call'];
+const LOCATIONS: Session['location'][] = ['Video call', 'Voice call', 'Focus block'];
 
 export function CalendarPage() {
   const state = useAppState();
@@ -54,7 +54,7 @@ export function CalendarPage() {
                   {list.map((s) => {
                     const tr = s.traineeId ? byId.get(s.traineeId) : undefined;
                     return (
-                      <button key={s.id} type="button" className={`event${s.start < now ? ' past' : ''}`} style={{ borderInlineStart: `3px solid ${s.location === 'In person' ? 'var(--accent)' : 'var(--neutral)'}` }} onClick={() => setSelected(s)}>
+                      <button key={s.id} type="button" className={`event${s.start < now ? ' past' : ''}`} style={{ borderInlineStart: `3px solid ${s.location === 'Focus block' ? 'var(--neutral)' : 'var(--accent)'}` }} onClick={() => setSelected(s)}>
                         <span className="mono xs faint">{s.start.slice(11, 16)} · {t('common.minutes', { n: s.durationMin })}</span>
                         <span style={{ fontWeight: 500 }} className="ellipsis">{tr ? fullName(tr) : s.title}</span>
                         <span className="xs muted ellipsis">{tr ? s.title : t(`location.${s.location}`)}</span>
@@ -94,7 +94,7 @@ function NewSessionModal({ date, onClose }: { date: string; onClose: () => void 
   const t = useT();
   const toast = useToast();
   const people = state.trainees.filter((tr) => tr.status === 'active' || tr.status === 'onboarding').sort((a, b) => fullName(a).localeCompare(fullName(b)));
-  const [f, setF] = useState({ traineeId: people[0]?.id ?? '', title: t('cal.defaultTitle'), date, time: '17:00', durationMin: 60, location: 'In person' as Session['location'] });
+  const [f, setF] = useState({ traineeId: people[0]?.id ?? '', title: t('cal.defaultTitle'), date, time: '17:00', durationMin: 30, location: 'Video call' as Session['location'] });
   const save = () => {
     addSession({ traineeId: f.traineeId || null, title: f.title.trim() || t('cal.defaultTitle'), start: `${f.date}T${f.time}:00`, durationMin: f.durationMin, location: f.location });
     toast(t('cal.booked'));

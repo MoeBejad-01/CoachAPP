@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { assignTemplate, setGoals, updateTrainee, updateTraineeProgram } from '../../data/actions';
 import { fullName } from '../../data/selectors';
 import { useAppState } from '../../data/store';
-import type { CoachingMode, Goal, Trainee } from '../../data/types';
+import { TIERS } from '../../data/plans';
+import type { Goal, PlanTier, Trainee } from '../../data/types';
 import { Icon } from '../../components/Icon';
 import { Modal, useToast } from '../../components/ui';
 import { useT } from '../../i18n';
@@ -18,7 +19,7 @@ export function EditProfileModal({ trainee, onClose }: { trainee: Trainee; onClo
   const save = () => {
     updateTrainee(trainee.id, {
       firstName: f.firstName.trim(), lastName: f.lastName.trim(), email: f.email.trim(), phone: f.phone, birthDate: f.birthDate,
-      heightCm: f.heightCm, mode: f.mode, frequency: f.frequency, checkinDay: f.checkinDay, injuries: f.injuries, pinnedNote: f.pinnedNote,
+      heightCm: f.heightCm, tier: f.tier, frequency: f.frequency, checkinDay: f.checkinDay, injuries: f.injuries, pinnedNote: f.pinnedNote,
     });
     toast(t('profile.saved'));
     onClose();
@@ -33,8 +34,8 @@ export function EditProfileModal({ trainee, onClose }: { trainee: Trainee; onClo
         <label className="field">{t('form.birthDate')}<input className="input" type="date" value={f.birthDate} onChange={(e) => set('birthDate', e.target.value)} /></label>
         <label className="field">{t('form.height')}<input className="input mono" type="number" value={f.heightCm} onChange={(e) => set('heightCm', Number(e.target.value))} /></label>
         <label className="field">{t('form.coachingType')}
-          <select className="select" value={f.mode} onChange={(e) => set('mode', e.target.value as CoachingMode)}>
-            {(['online', 'inperson', 'hybrid'] as const).map((m) => <option key={m} value={m}>{t(`mode.${m}`)}</option>)}
+          <select className="select" value={f.tier} onChange={(e) => set('tier', e.target.value as PlanTier)}>
+            {TIERS.map((m) => <option key={m} value={m}>{t(`tier.${m}`)}</option>)}
           </select>
         </label>
         <label className="field">{t('form.sessionsPerWeek')}

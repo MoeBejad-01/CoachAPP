@@ -245,11 +245,14 @@ export function unreadTotal(state: AppState): number {
   return state.messages.filter((m) => m.from === 'trainee' && !m.read).length;
 }
 
-export function formatMoney(state: AppState, n: number): string {
+/** The platform bills in Saudi riyals only. */
+export const CURRENCY = 'SAR';
+
+export function formatMoney(n: number): string {
   try {
     const locale = document.documentElement.lang === 'ar' ? 'ar-u-nu-latn' : 'en';
-    return new Intl.NumberFormat(locale, { style: 'currency', currency: state.coach.currency, maximumFractionDigits: 0 }).format(n);
+    return new Intl.NumberFormat(locale, { style: 'currency', currency: CURRENCY, maximumFractionDigits: 0 }).format(n);
   } catch {
-    return `${state.coach.currency} ${Math.round(n)}`;
+    return `${CURRENCY} ${Math.round(n)}`;
   }
 }

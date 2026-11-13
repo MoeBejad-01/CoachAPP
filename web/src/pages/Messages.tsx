@@ -152,7 +152,7 @@ export function MessagesPage() {
               <span style={{ fontSize: 13, fontWeight: 500 }}>{t('chat.quickActions')}</span>
               <Link to={`/trainees/${active.id}?tab=program`} className="btn sm" style={{ justifyContent: 'flex-start' }}>{t('chat.adjustProgram')}</Link>
               <Link to={`/trainees/${active.id}?tab=notes`} className="btn sm" style={{ justifyContent: 'flex-start' }}>{t('chat.writeNote')}</Link>
-              <Link to="/calendar" className="btn sm" style={{ justifyContent: 'flex-start' }}>{t('chat.bookSession')}</Link>
+              <Link to="/calendar" className="btn sm" style={{ justifyContent: 'flex-start' }}>{t('chat.bookCall')}</Link>
             </div>
           </aside>
         )}

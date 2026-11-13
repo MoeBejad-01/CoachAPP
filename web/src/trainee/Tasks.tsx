@@ -143,8 +143,8 @@ export function MeScreen() {
   const m = trainee.membership;
   const scans = state.inbody.filter((x) => x.traineeId === trainee.id);
   const rows: [string, string][] = [
-    [t('ta.me.plan'), t(`mode.plan.${trainee.mode}`)],
-    [t('billing.price'), `${formatMoney(state, m.price)} · ${t(`cycle.${m.cycle}`)}`],
+    [t('ta.me.plan'), t(`tier.${trainee.tier}`)],
+    [t('billing.price'), `${formatMoney(m.price)} · ${t(`cycle.${m.cycle}`)}`],
     [t('billing.renews'), fmtDay(m.renewsOn)],
     [t('form.checkinDay'), weekdayName(trainee.checkinDay)],
     [t('form.sessionsPerWeek'), String(trainee.frequency)],

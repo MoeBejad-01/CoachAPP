@@ -37,3 +37,23 @@ The UI only talks to `store.ts` (reads) and `actions.ts` (writes). Replace
 `load`/`persist` and the bodies in `actions.ts` with API calls, and the pages
 keep working. The trainee mobile app would write `logs`, `weights`,
 `checkins` and trainee `messages` to the same API.
+
+## AI file reading (training import)
+
+"Import from file" sends the coach's training file (Excel, CSV, PDF or a photo) to Claude, which returns the
+training days and exercises for the coach to check before importing. The call runs on the server
+(`server/aiTraining.ts`, served by the Vite dev/preview server at `/api/ai/parse-training`), so the API key
+never reaches the browser.
+
+Setup (macOS, key kept in the Keychain): save it once with
+`security add-generic-password -a "$USER" -s coachhq-anthropic -w`, then start the app with `npm run dev:secure`.
+
+Or create `web/.env.local` containing
+
+```
+ANTHROPIC_API_KEY=your-key-here
+```
+
+and restart `npm run dev`. `.env.local` is git-ignored. Without a key the dialog says so and offers the
+manual column/line mapping instead. For a production deployment, host `handleAiTraining` behind the same
+route (e.g. as a serverless function) with the key set as a server environment variable.

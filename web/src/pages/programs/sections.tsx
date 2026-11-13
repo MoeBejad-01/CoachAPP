@@ -1,14 +1,16 @@
 // The parts of a program template. The new-template wizard shows them as steps,
 // the template editor as tabs, and a trainee's Program tab reuses the guide parts.
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { blankDay } from '../../data/actions';
 import { macroKcal, nutritionFor } from '../../data/guide';
 import type { Equipment, GoalType, Level, ProgramDay, ProgramGuide, Template } from '../../data/types';
 import { Icon } from '../../components/Icon';
 import { ProgramEditor } from '../../components/ProgramEditor';
+import { useToast } from '../../components/ui';
 import { useT, type T } from '../../i18n';
 import type { StringKey } from '../../i18n/strings';
+import { ImportTrainingModal } from './ImportTraining';
 
 export type Draft = Omit<Template, 'id' | 'updatedAt'>;
 export interface StepProps {
@@ -139,10 +141,24 @@ export function BasicsStep({ tpl, set, setGuide, creating, onGoal }: StepProps &
 
 export function TrainingStep({ tpl, set }: StepProps) {
   const t = useT();
+  const toast = useToast();
+  const [importing, setImporting] = useState(false);
+  const [editorKey, setEditorKey] = useState(0);
   const sets = tpl.days.reduce((n, d) => n + d.exercises.reduce((m, e) => m + e.sets, 0), 0);
+  // Treat untouched placeholder days ("Day 1" with one "New exercise") as empty.
+  const hasDays = tpl.days.some((d) => d.exercises.some((e) => e.name !== t('editor.newExercise')));
   return (
-    <Block title={t('tb.trainingTitle')} sub={t('tb.trainingSub', { d: tpl.days.length, s: sets })}>
-      <div className="tb-editor"><ProgramEditor days={tpl.days} editing onChange={(days) => set({ days })} /></div>
+    <Block title={t('tb.trainingTitle')} sub={t('tb.trainingSub', { d: tpl.days.length, s: sets })}
+      action={<button type="button" className="btn sm" onClick={() => setImporting(true)}><Icon name="upload" size={14} />{t('imp.button')}</button>}>
+      <div className="tb-editor"><ProgramEditor key={editorKey} days={tpl.days} editing onChange={(days) => set({ days })} /></div>
+      {importing && (
+        <ImportTrainingModal hasDays={hasDays} onClose={() => setImporting(false)} onImport={(days, mode) => {
+          set({ days: mode === 'replace' || !hasDays ? days : [...tpl.days, ...days] });
+          setEditorKey((k) => k + 1);
+          setImporting(false);
+          toast(t('imp.done', { d: days.length, e: days.reduce((n, d) => n + d.exercises.length, 0) }));
+        }} />
+      )}
     </Block>
   );
 }

@@ -4,7 +4,9 @@
 import { useMemo, useState } from 'react';
 import { addMetricEntry, deleteInBodyScan, deleteMetricEntry } from '../../data/actions';
 import { prEvents, inRange, seriesFor, summarize, topLifts, volumeByWeek, type Scope } from '../../data/progress';
+import { reportUrl } from '../../data/remote';
 import { useAppState } from '../../data/store';
+import { supabase } from '../../lib/supabase';
 import type { CardSource, CustomCard, InBodyField, InBodyScan, Trainee, WorkoutLog } from '../../data/types';
 import { BarChart, Sparkline } from '../../components/BarChart';
 import { Icon } from '../../components/Icon';
@@ -274,6 +276,16 @@ export function InBodyTrendCard({ trainee, scope }: ProgressProps) {
 
 function ReportLink({ scan, t }: { scan: InBodyScan; t: T }) {
   if (!scan.file) return null;
+  // Stored in Supabase: open through a short-lived signed link.
+  const path = scan.file.path;
+  if (path && supabase) {
+    const db = supabase;
+    return (
+      <button type="button" className="link-btn small row" style={{ gap: 4 }} onClick={async () => { const url = await reportUrl(db, path); if (url) window.open(url, '_blank', 'noopener'); }}>
+        <Icon name="clipboard" size={14} />{t('inbody.report')}
+      </button>
+    );
+  }
   return scan.file.dataUrl
     ? <a href={scan.file.dataUrl} download={scan.file.name} className="small row" style={{ gap: 4 }}><Icon name="clipboard" size={14} />{t('inbody.report')}</a>
     : <span className="small faint row" style={{ gap: 4 }} title={scan.file.name}><Icon name="clipboard" size={14} />{t('inbody.reportOnFile')}</span>;

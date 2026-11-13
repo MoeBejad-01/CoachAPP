@@ -16,6 +16,7 @@ import { useT, type T } from '../../i18n';
 import { addDays, dayOfWeek, fmtDay, fmtDow, fmtRelativeDay, fmtShort, todayISO } from '../../lib/dates';
 import { e1rm, fmtKg, uid } from '../../lib/util';
 import { applyGuide, GuideSummary, InstructionsStep, NutritionStep, RecoveryStep, type GuidePatch } from '../programs/sections';
+import { ImportTrainingModal } from '../programs/ImportTraining';
 import { ChangeProgramModal } from './modals';
 import { SetChips } from './sections';
 
@@ -32,6 +33,7 @@ export function ProgramTab({ trainee, logs }: { trainee: Trainee; logs: WorkoutL
   const [draft, setDraft] = useState<ProgramWeek[] | null>(null);
   const [name, setName] = useState('');
   const [changing, setChanging] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   // Best e1RM per exercise before each log, for PR marks.
   const prevBestAt = useMemo(() => {
@@ -216,13 +218,29 @@ export function ProgramTab({ trainee, logs }: { trainee: Trainee; logs: WorkoutL
       })}
       {editing && (
         <div className="card-foot">
-          <button type="button" className="btn sm" style={{ borderStyle: 'dashed' }} onClick={() => setWeekDraft({ ...wk, days: [...wk.days, blankDay(t('editor.dayN', { n: wk.days.length + 1 }), t('editor.newExercise'))] })}>
-            <Icon name="plus" size={14} strokeWidth={2} />{t('weeks.addDay')}
-          </button>
+          <div className="row wrap">
+            <button type="button" className="btn sm" style={{ borderStyle: 'dashed' }} onClick={() => setWeekDraft({ ...wk, days: [...wk.days, blankDay(t('editor.dayN', { n: wk.days.length + 1 }), t('editor.newExercise'))] })}>
+              <Icon name="plus" size={14} strokeWidth={2} />{t('weeks.addDay')}
+            </button>
+            <button type="button" className="btn sm" onClick={() => setImporting(true)}><Icon name="upload" size={14} />{t('imp.button')}</button>
+          </div>
           <span className="small muted">{t('weeks.editHint')}</span>
         </div>
       )}
       {changing && <ChangeProgramModal trainee={trainee} onClose={() => setChanging(false)} />}
+      {importing && (
+        <ImportTrainingModal hasDays={wk.days.length > 0} scopeChoice={w < plan.length - 1} onClose={() => setImporting(false)} onImport={(days, mode, scope, fileWeeks) => {
+          // Each week gets its own copy so later edits stay per week.
+          const forWeek = (x: ProgramWeek, d: ProgramDay[]): ProgramWeek => ({ ...x, days: mode === 'replace' ? cloneDays(d) : [...x.days, ...cloneDays(d)] });
+          setDraft(plan.map((x, i) => {
+            // File weeks land on this week and the ones after it, in order.
+            if (scope === 'fileWeeks' && fileWeeks) return i >= w && fileWeeks[i - w] ? forWeek(x, fileWeeks[i - w]) : x;
+            return i === w || (scope === 'rest' && i > w) ? forWeek(x, days) : x;
+          }));
+          setImporting(false);
+          toast(t('imp.doneDraft', { d: days.length }));
+        }} />
+      )}
     </section>
   );
 }

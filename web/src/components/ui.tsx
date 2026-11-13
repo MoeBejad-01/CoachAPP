@@ -48,7 +48,7 @@ export function Card({ title, action, children, className = '', label }: { title
   );
 }
 
-export function Modal({ title, onClose, children, footer, wide }: { title: string; onClose: () => void; children: ReactNode; footer?: ReactNode; wide?: boolean }) {
+export function Modal({ title, onClose, children, footer, wide, xl }: { title: string; onClose: () => void; children: ReactNode; footer?: ReactNode; wide?: boolean; xl?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const t = useT();
   useEffect(() => {
@@ -59,7 +59,7 @@ export function Modal({ title, onClose, children, footer, wide }: { title: strin
   }, [onClose]);
   return (
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={`modal ${wide ? 'wide' : ''}`} role="dialog" aria-modal="true" aria-label={title} ref={ref}>
+      <div className={`modal ${xl ? 'xl' : wide ? 'wide' : ''}`} role="dialog" aria-modal="true" aria-label={title} ref={ref}>
         <div className="modal-head">
           <h2 className="card-title">{title}</h2>
           <button type="button" className="btn ghost sm icon" aria-label={t('common.close')} onClick={onClose}><Icon name="x" size={16} /></button>

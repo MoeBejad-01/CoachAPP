@@ -1,6 +1,8 @@
-import { StrictMode } from 'react';
+import { StrictMode, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-dom';
+import { AuthProvider, useAuth } from './auth/AuthProvider';
+import { AccountProblem, CoachAuthPage, LoadingScreen, TraineeAuthPage } from './auth/AuthScreens';
 import { Layout } from './components/Layout';
 import { ToastProvider } from './components/ui';
 import { LangProvider, useI18n } from './i18n';
@@ -10,6 +12,7 @@ import { HistoryPage } from './pages/History';
 import { MessagesPage } from './pages/Messages';
 import { NewTraineePage } from './pages/NewTrainee';
 import { OverviewPage } from './pages/Overview';
+import { RequestsPage } from './pages/Requests';
 import { ProgramsPage } from './pages/Programs';
 import { TemplateWizard } from './pages/programs/TemplateWizard';
 import { SettingsPage } from './pages/Settings';
@@ -24,13 +27,46 @@ import { TraineeAppIndex, TraineeAppRoot } from './trainee/TraineeApp';
 import { WorkoutScreen } from './trainee/Workout';
 import './styles.css';
 
+/** Dashboard: coaches only (local demo mode skips sign-in). */
+function CoachGate({ children }: { children: ReactNode }) {
+  const a = useAuth();
+  if (a.status === 'local') return <>{children}</>;
+  if (a.status === 'loading') return <CoachAuthPage><LoadingScreen /></CoachAuthPage>;
+  if (a.status === 'signedOut') return <Navigate to="/login" replace />;
+  if (a.status !== 'ready') return <CoachAuthPage><AccountProblem /></CoachAuthPage>;
+  if (a.role === 'trainee') return <Navigate to="/app" replace />;
+  return <>{children}</>;
+}
+
+/** Trainee app: the trainee themself, or their coach previewing it. */
+function TraineeGate({ children }: { children: ReactNode }) {
+  const a = useAuth();
+  const { tid } = useParams();
+  if (a.status === 'local') return <>{children}</>;
+  if (a.status === 'loading') return <TraineeAuthPage><LoadingScreen /></TraineeAuthPage>;
+  if (a.status === 'signedOut') return <TraineeAuthPage />;
+  if (a.status !== 'ready') return <TraineeAuthPage><AccountProblem /></TraineeAuthPage>;
+  if (a.role === 'trainee' && tid && tid !== a.traineeId) return <Navigate to={`/app/${a.traineeId}`} replace />;
+  return <>{children}</>;
+}
+
+function LoginRoute() {
+  const a = useAuth();
+  if (a.status === 'local' || (a.status === 'ready' && a.role === 'coach')) return <Navigate to="/" replace />;
+  if (a.status === 'ready' && a.role === 'trainee') return <Navigate to="/app" replace />;
+  if (a.status === 'loading') return <CoachAuthPage><LoadingScreen /></CoachAuthPage>;
+  if (a.status === 'noProfile' || a.status === 'error') return <CoachAuthPage><AccountProblem /></CoachAuthPage>;
+  return <CoachAuthPage />;
+}
+
 function AppRoutes() {
   // Remount on language change so every date and label re-renders in the new language.
   const { lang } = useI18n();
   return (
     <Routes key={lang}>
-      <Route path="app" element={<TraineeAppIndex />} />
-      <Route path="app/:tid" element={<TraineeAppRoot />}>
+      <Route path="login" element={<LoginRoute />} />
+      <Route path="app" element={<TraineeGate><TraineeAppIndex /></TraineeGate>} />
+      <Route path="app/:tid" element={<TraineeGate><TraineeAppRoot /></TraineeGate>}>
         <Route index element={<TodayScreen />} />
         <Route path="program" element={<ProgramScreen />} />
         <Route path="progress" element={<ProgressScreen />} />
@@ -40,8 +76,9 @@ function AppRoutes() {
         <Route path="checkin" element={<CheckinScreen />} />
         <Route path="inbody" element={<InBodyScreen />} />
       </Route>
-      <Route element={<Layout />}>
+      <Route element={<CoachGate><Layout /></CoachGate>}>
         <Route index element={<OverviewPage />} />
+        <Route path="requests" element={<RequestsPage />} />
         <Route path="trainees" element={<TraineesPage />} />
         <Route path="trainees/new" element={<NewTraineePage />} />
         <Route path="trainees/:id" element={<TraineePage />} />
@@ -64,9 +101,11 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <LangProvider>
       <ToastProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
+        <AuthProvider>
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </AuthProvider>
       </ToastProvider>
     </LangProvider>
   </StrictMode>,

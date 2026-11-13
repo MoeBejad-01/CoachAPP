@@ -5,10 +5,10 @@ import { addDays, dayOfWeek, daysBetween, stampAt, startOfWeek, todayISO } from 
 import { mulberry32, roundTo } from '../lib/util';
 import { defaultLayout } from './layout';
 import { buildPlan, daysOn } from './plan';
+import { MONTHLY_PRICE, planName } from './plans';
 import { seedTemplates } from './templates';
 import type {
-  AppState, AssignedProgram, CheckIn, CoachingMode, Goal, GoalType, InBodyRequest, InBodyScan, LogEntry, Message, Note,
-  Session, Template, Trainee, TraineeStatus, WeightEntry, WorkoutLog,
+  AppState, AssignedProgram, CheckIn, Goal, GoalType, InBodyRequest, InBodyScan, JoinRequest, LogEntry, Message, Note, PlanTier, Session, Template, Trainee, TraineeStatus, WeightEntry, WorkoutLog,
 } from './types';
 
 export const STATE_VERSION = 2;
@@ -24,7 +24,7 @@ export const WEEKDAY_SLOTS: Record<number, number[]> = {
 interface Profile {
   first: string;
   last: string;
-  mode: CoachingMode;
+  tier: PlanTier;
   status: TraineeStatus;
   goalType: GoalType;
   tpl: string | null;
@@ -48,35 +48,35 @@ interface Profile {
 }
 
 const PROFILES: Profile[] = [
-  { first: 'Layla', last: 'Mansour', mode: 'online', status: 'active', goalType: 'muscle', tpl: 'tpl-hyp4', week: 6, adh: 0.95, strength: 1, freq: 4, birth: '1999-03-14', height: 165, startKg: 57.8, kgPerWeek: 0.16, lastDaysAgo: 0,
+  { first: 'Layla', last: 'Mansour', tier: 'essential', status: 'active', goalType: 'muscle', tpl: 'tpl-hyp4', week: 6, adh: 0.95, strength: 1, freq: 4, birth: '1999-03-14', height: 165, startKg: 57.8, kgPerWeek: 0.16, lastDaysAgo: 0,
     goals: [{ label: 'Reach 62 kg body weight', unit: 'kg', start: 57.8, current: 59.4, target: 62 }, { label: 'Hip thrust 150 kg × 5', unit: 'kg', start: 110, current: 140, target: 150 }],
     injuries: 'Occasional left hip tightness on lunges.', pinned: 'Lean bulk. 2,250 kcal on training days, 125 g protein. Watch left hip on lunges.' },
-  { first: 'Marcus', last: 'Lindqvist', mode: 'inperson', status: 'active', goalType: 'strength', tpl: 'tpl-pl', week: 7, adh: 0.98, strength: 2.1, freq: 4, birth: '1993-08-02', height: 182, startKg: 92.5, kgPerWeek: -0.05, lastDaysAgo: 0,
+  { first: 'Marcus', last: 'Lindqvist', tier: 'elite', status: 'active', goalType: 'strength', tpl: 'tpl-pl', week: 7, adh: 0.98, strength: 2.1, freq: 4, birth: '1993-08-02', height: 182, startKg: 92.5, kgPerWeek: -0.05, lastDaysAgo: 0,
     goals: [{ label: 'Meet total 600 kg', unit: 'kg', start: 560, current: 585, target: 600 }, { label: 'Make weight under 93 kg', unit: 'kg', start: 94.2, current: 92.1, target: 93 }],
     pinned: 'Meet in 3 weeks. Openers: 200 / 135 / 245. No new exercises until after the meet.' },
-  { first: 'Sara', last: 'Al-Qahtani', mode: 'online', status: 'active', goalType: 'fatloss', tpl: 'tpl-fat', week: 9, adh: 0.66, strength: 0.9, freq: 4, birth: '1991-11-20', height: 162, startKg: 74.0, kgPerWeek: -0.35, lastDaysAgo: 4, missCheckins: 2,
+  { first: 'Sara', last: 'Al-Qahtani', tier: 'essential', status: 'active', goalType: 'fatloss', tpl: 'tpl-fat', week: 9, adh: 0.66, strength: 0.9, freq: 4, birth: '1991-11-20', height: 162, startKg: 74.0, kgPerWeek: -0.35, lastDaysAgo: 4, missCheckins: 2,
     goals: [{ label: 'Lose 6 kg', unit: 'kg', start: 74, current: 70.9, target: 68 }, { label: '9,000 steps per day', unit: 'steps', start: 5200, current: 7800, target: 9000 }],
     pinned: 'Travels for work 1–2 weeks a month. Keep a hotel-gym version of each session ready.' },
-  { first: 'Daniel', last: 'Okafor', mode: 'online', status: 'active', goalType: 'strength', tpl: 'tpl-str3', week: 3, adh: 0.9, strength: 1.7, freq: 3, birth: '1996-05-09', height: 178, startKg: 84, kgPerWeek: 0.05, lastDaysAgo: 1,
+  { first: 'Daniel', last: 'Okafor', tier: 'essential', status: 'active', goalType: 'strength', tpl: 'tpl-str3', week: 3, adh: 0.9, strength: 1.7, freq: 3, birth: '1996-05-09', height: 178, startKg: 84, kgPerWeek: 0.05, lastDaysAgo: 1,
     goals: [{ label: 'First 180 kg deadlift', unit: 'kg', start: 155, current: 170, target: 180 }],
     injuries: 'Lower-back strain in 2023. Prefers trap-bar for heavy pulls.', pinned: 'Lower-back history. Prefers trap-bar for heavy pulls.' },
-  { first: 'Khalid', last: 'Al-Harbi', mode: 'hybrid', status: 'active', goalType: 'sport', tpl: 'tpl-ath', week: 4, adh: 0.92, strength: 1.6, freq: 4, birth: '2001-01-27', height: 184, startKg: 79, kgPerWeek: 0.05, lastDaysAgo: 0,
+  { first: 'Khalid', last: 'Al-Harbi', tier: 'premium', status: 'active', goalType: 'sport', tpl: 'tpl-ath', week: 4, adh: 0.92, strength: 1.6, freq: 4, birth: '2001-01-27', height: 184, startKg: 79, kgPerWeek: 0.05, lastDaysAgo: 0,
     goals: [{ label: 'Vertical jump +8 cm', unit: 'cm', start: 58, current: 62, target: 66 }, { label: '20 m sprint under 2.9 s', unit: 's', start: 3.12, current: 3.01, target: 2.9 }],
     pinned: 'Pre-season starts in January. Keep sprint volume low on match weeks.' },
-  { first: 'Yousef', last: 'Haddad', mode: 'online', status: 'active', goalType: 'muscle', tpl: 'tpl-hyp4', week: 11, adh: 0.6, strength: 1.4, freq: 4, birth: '1994-07-15', height: 176, startKg: 72, kgPerWeek: 0.08, lastDaysAgo: 6,
+  { first: 'Yousef', last: 'Haddad', tier: 'essential', status: 'active', goalType: 'muscle', tpl: 'tpl-hyp4', week: 11, adh: 0.6, strength: 1.4, freq: 4, birth: '1994-07-15', height: 176, startKg: 72, kgPerWeek: 0.08, lastDaysAgo: 6,
     goals: [{ label: 'Add 4 kg lean mass', unit: 'kg', start: 72, current: 73.1, target: 76 }] },
-  { first: 'Priya', last: 'Raman', mode: 'hybrid', status: 'active', goalType: 'rehab', tpl: 'tpl-rtt', week: 2, adh: 0.82, strength: 0.8, freq: 3, birth: '1997-09-30', height: 160, startKg: 58, kgPerWeek: 0, lastDaysAgo: 2,
+  { first: 'Priya', last: 'Raman', tier: 'premium', status: 'active', goalType: 'rehab', tpl: 'tpl-rtt', week: 2, adh: 0.82, strength: 0.8, freq: 3, birth: '1997-09-30', height: 160, startKg: 58, kgPerWeek: 0, lastDaysAgo: 2,
     goals: [{ label: 'Pain-free squat to parallel', unit: '/10 pain', start: 4, current: 1, target: 0 }],
     injuries: 'ACL reconstruction (left), March. Physio cleared loaded squats to parallel.', pinned: 'Post-ACL (left). Physio cleared loaded squats to parallel.' },
-  { first: 'Hana', last: 'Sato', mode: 'inperson', status: 'active', goalType: 'strength', tpl: 'tpl-str3', week: 5, adh: 0.86, strength: 0.85, freq: 3, birth: '1995-04-11', height: 158, startKg: 58, kgPerWeek: 0, lastDaysAgo: 1,
+  { first: 'Hana', last: 'Sato', tier: 'elite', status: 'active', goalType: 'strength', tpl: 'tpl-str3', week: 5, adh: 0.86, strength: 0.85, freq: 3, birth: '1995-04-11', height: 158, startKg: 58, kgPerWeek: 0, lastDaysAgo: 1,
     goals: [{ label: 'Bench press bodyweight (58 kg)', unit: 'kg', start: 42.5, current: 52.5, target: 58 }] },
-  { first: 'Ali', last: 'Rahimi', mode: 'online', status: 'active', goalType: 'sport', tpl: 'tpl-ath', week: 8, adh: 0.78, strength: 1.3, freq: 4, birth: '1990-12-03', height: 175, startKg: 74, kgPerWeek: -0.1, lastDaysAgo: 3, painOn: 'Bulgarian split squat',
+  { first: 'Ali', last: 'Rahimi', tier: 'essential', status: 'active', goalType: 'sport', tpl: 'tpl-ath', week: 8, adh: 0.78, strength: 1.3, freq: 4, birth: '1990-12-03', height: 175, startKg: 74, kgPerWeek: -0.1, lastDaysAgo: 3, painOn: 'Bulgarian split squat',
     goals: [{ label: 'Half marathon under 1:45', unit: 'min', start: 118, current: 109, target: 105 }] },
-  { first: 'Nora', last: 'Abdullah', mode: 'hybrid', status: 'onboarding', goalType: 'fatloss', tpl: 'tpl-fat', week: 0, adh: 0, strength: 0.8, freq: 3, birth: '1998-06-21', height: 167, startKg: 81, kgPerWeek: 0,
+  { first: 'Nora', last: 'Abdullah', tier: 'premium', status: 'onboarding', goalType: 'fatloss', tpl: 'tpl-fat', week: 0, adh: 0, strength: 0.8, freq: 3, birth: '1998-06-21', height: 167, startKg: 81, kgPerWeek: 0,
     goals: [{ label: 'Train 3× per week for 8 weeks', unit: 'weeks', start: 0, current: 0, target: 8 }] },
-  { first: 'Emily', last: 'Carter', mode: 'online', status: 'paused', goalType: 'health', tpl: 'tpl-str3', week: 4, adh: 0.7, strength: 0.75, freq: 3, birth: '2003-02-17', height: 170, startKg: 63, kgPerWeek: 0, lastDaysAgo: 23,
+  { first: 'Emily', last: 'Carter', tier: 'essential', status: 'paused', goalType: 'health', tpl: 'tpl-str3', week: 4, adh: 0.7, strength: 0.75, freq: 3, birth: '2003-02-17', height: 170, startKg: 63, kgPerWeek: 0, lastDaysAgo: 23,
     pinned: 'Paused for exams until mid-November.' },
-  { first: 'Tomás', last: 'Rivera', mode: 'online', status: 'inactive', goalType: 'muscle', tpl: 'tpl-hyp4', week: 2, adh: 0.55, strength: 1.2, freq: 4, birth: '1992-10-08', height: 180, startKg: 82, kgPerWeek: 0, lastDaysAgo: 41, unpaid: true },
+  { first: 'Tomás', last: 'Rivera', tier: 'essential', status: 'inactive', goalType: 'muscle', tpl: 'tpl-hyp4', week: 2, adh: 0.55, strength: 1.2, freq: 4, birth: '1992-10-08', height: 180, startKg: 82, kgPerWeek: 0, lastDaysAgo: 41, unpaid: true },
 ];
 
 const FIRST = ['Omar', 'Lina', 'James', 'Fatima', 'Lucas', 'Mei', 'Rami', 'Chloe', 'Faisal', 'Aisha', 'Noah', 'Reem', 'Ethan', 'Dana', 'Samir', 'Grace', 'Ibrahim', 'Maya', 'Tariq', 'Zoe'];
@@ -95,7 +95,7 @@ function generatedProfiles(rand: () => number): Profile[] {
     return {
       first,
       last: LAST[(i * 7) % LAST.length],
-      mode: (['online', 'online', 'hybrid', 'inperson'] as CoachingMode[])[i % 4],
+      tier: (['essential', 'essential', 'premium', 'elite'] as PlanTier[])[i % 4],
       status: inactive ? 'inactive' : paused ? 'paused' : 'active',
       goalType,
       tpl,
@@ -233,20 +233,20 @@ export function createSeed(): AppState {
 
     const goals: Goal[] = (p.goals ?? defaultGoals(p)).map((g, i) => ({ ...g, id: `${id}-g${i + 1}` }));
     const lastLog = logs.filter((l) => l.traineeId === id).at(-1);
-    const price = p.mode === 'online' ? 150 : p.mode === 'hybrid' ? 280 : 420;
+    const price = MONTHLY_PRICE[p.tier];
     const cycle = p.cycle ?? 'monthly';
 
     trainees.push({
       id, firstName: p.first, lastName: p.last,
       email: `${p.first}.${p.last}`.toLowerCase().normalize('NFD').replace(/[^a-z.]/g, '') + '@example.com',
       phone: `+1 555 01${String(idx).padStart(2, '0')}`,
-      birthDate: p.birth, heightCm: p.height, mode: p.mode, status: p.status, goalType: p.goalType, goals,
+      birthDate: p.birth, heightCm: p.height, tier: p.tier, status: p.status, goalType: p.goalType, goals,
       injuries: p.injuries ?? '', frequency: p.freq, checkinDay, joinedAt,
       lastSeenAt: lastLog ? new Date(`${lastLog.date}T${String(17 + (idx % 4)).padStart(2, '0')}:20:00`).toISOString() : stampAt(2, 10, 0),
       tone: idx % 6, program,
       membership: {
-        plan: `${p.mode === 'online' ? 'Online coaching' : p.mode === 'hybrid' ? 'Hybrid · 2 sessions/week' : 'In person · 3 sessions/week'}`,
-        price: cycle === 'quarterly' ? price * 3 * 0.9 : price, cycle,
+        plan: planName(p.tier),
+        price: cycle === 'quarterly' ? Math.round(price * 3 * 0.9) : price, cycle,
         renewsOn: addDays(today, 1 + ((idx * 5) % 28)),
         paid: !p.unpaid && p.status !== 'inactive',
       },
@@ -264,7 +264,7 @@ export function createSeed(): AppState {
 
   return {
     version: STATE_VERSION,
-    coach: { name: 'Omar Haddad', title: 'Head coach', email: 'omar@coachhq.example', businessName: 'Coach HQ', currency: 'USD' },
+    coach: { name: 'Omar Haddad', title: 'Head coach', email: 'omar@coachhq.example', businessName: 'Coach HQ' },
     trainees,
     templates,
     logs,
@@ -276,8 +276,43 @@ export function createSeed(): AppState {
     traineeLayout: defaultLayout(),
     ...seedInBody(trainees, weights, today, rand),
     metricEntries: [],
+    importLayouts: [],
+    joinRequests: seedJoinRequests(today),
     widgets: { kpis: true, attention: true, sessions: true, messages: true, roster: true, adherence: true, prs: true, renewals: false },
   };
+}
+
+/** People who found the coach's public page and asked to join; two still waiting, one already taken on. */
+function seedJoinRequests(today: string): JoinRequest[] {
+  return [
+    {
+      id: 'jr1', name: 'Noura Al-Faris', email: 'noura.alfaris@example.com', phone: '966551240098',
+      planId: 'premium', status: 'pending', sentAt: `${addDays(today, -1)}T20:14:00.000Z`, traineeId: null,
+      message: 'I saw your transformation posts on Instagram. I train at a ladies gym near King Abdullah Road and can go four times a week.',
+      answers: {
+        birthDate: '1996-04-12', gender: 'female', city: 'Riyadh', heightCm: 165, weightKg: 78.4, targetWeightKg: 65,
+        activity: 'desk', sleepHours: 6, goal: 'fatloss', experience: 'under1', days: [0, 2, 4, 6], sessionMinutes: 60,
+        place: 'gym', painAreas: ['knees'], painNotes: 'Left knee aches after running for more than 20 minutes.',
+        conditions: ['none'], medications: '', start: 'asap', units: 'metric',
+      },
+    },
+    {
+      id: 'jr2', name: 'Khalid Al-Otaibi', email: 'k.alotaibi@example.com', phone: '966503887712',
+      planId: 'elite', status: 'pending', sentAt: `${addDays(today, -3)}T07:02:00.000Z`, traineeId: null,
+      message: 'Powerlifting meet in April. Looking for someone to run my peaking block.',
+      answers: {
+        birthDate: '1991-11-30', gender: 'male', city: 'Jeddah', heightCm: 181, weightKg: 92.1, targetWeightKg: 93,
+        activity: 'active', sleepHours: 7.5, goal: 'strength', experience: 'over3', days: [0, 1, 3, 4], sessionMinutes: 90,
+        place: 'gym', lifts: { squat: 205, bench: 140, deadlift: 250 }, painAreas: [], painNotes: '',
+        conditions: ['none'], medications: '', start: 'twoWeeks', units: 'metric',
+      },
+    },
+    {
+      id: 'jr3', name: 'Sara Al-Qahtani', email: 'sara.q@example.com', phone: '966556610042',
+      planId: 'essential', status: 'approved', sentAt: `${addDays(today, -26)}T18:40:00.000Z`, traineeId: 't3',
+      message: '', answers: { city: 'Dammam', goal: 'fatloss', experience: 'new', days: [0, 2, 4], place: 'home', start: 'asap', units: 'metric' },
+    },
+  ];
 }
 
 /** InBody scans roughly every four weeks, following each trainee's weight trend. */
@@ -359,33 +394,32 @@ function seedMessages(): Message[] {
   add('t9', 'trainee', 3, 19, 45, 'Had some knee pain on the split squats, stopped after set 3.', false);
   add('t11', 'trainee', 23, 14, 22, 'I need to pause for a few weeks for exams. Back mid-November.');
   add('t11', 'coach', 23, 15, 0, 'Of course, good luck! I have paused your plan and billing.');
-  add('t2', 'coach', 1, 9, 0, 'Squat looked fast today. Same plan tomorrow.');
+  add('t2', 'coach', 1, 9, 0, 'Watched your squat video, bar speed looked great. Same plan tomorrow.');
   add('t2', 'trainee', 1, 9, 15, 'Thanks coach, feeling ready.');
   return out;
 }
 
 function seedSessions(trainees: Trainee[], today: string): Session[] {
+  // Online coaching: video and voice calls. Elite plans get a weekly call, Premium every other week.
   const sessions: Session[] = [];
-  const times = ['07:00', '09:30', '12:00', '16:00', '17:30', '19:00'];
+  const times = ['08:00', '12:30', '17:00', '18:30', '19:30', '20:30'];
   const weekStart = startOfWeek(today);
   trainees
-    .filter((t) => (t.mode === 'inperson' || t.mode === 'hybrid') && (t.status === 'active' || t.status === 'onboarding') && t.program)
+    .filter((t) => (t.tier === 'elite' || t.tier === 'premium') && (t.status === 'active' || t.status === 'onboarding'))
     .forEach((t, i) => {
-      const slots = (WEEKDAY_SLOTS[t.frequency] ?? WEEKDAY_SLOTS[3]).slice(0, t.mode === 'hybrid' ? 2 : 3);
-      for (let d = weekStart; d <= addDays(weekStart, 13); d = addDays(d, 1)) {
-        const slot = slots.indexOf(dayOfWeek(d));
-        if (slot === -1) continue;
-        const wd = daysOn(t.program!, d);
-        const day = wd[slot % wd.length];
+      for (let w = 0; w < 2; w++) {
+        if (t.tier === 'premium' && w !== i % 2) continue;
+        const day = addDays(weekStart, w * 7 + (i % 5));
         sessions.push({
-          id: `s${sessions.length + 1}`, traineeId: t.id, title: day.name,
-          start: `${d}T${times[(i + slot) % times.length]}:00`, durationMin: 60,
-          location: t.mode === 'inperson' ? 'In person' : i % 2 ? 'Remote' : 'In person',
+          id: `s${sessions.length + 1}`, traineeId: t.id,
+          title: t.tier === 'elite' ? 'Weekly coaching call' : 'Bi-weekly check-in call',
+          start: `${day}T${times[i % times.length]}:00`, durationMin: t.tier === 'elite' ? 45 : 30,
+          location: i % 3 === 2 ? 'Voice call' : 'Video call',
         });
       }
     });
-  sessions.push({ id: `s${sessions.length + 1}`, traineeId: 't10', title: 'Onboarding & movement screen', start: `${today}T19:00:00`, durationMin: 60, location: 'In person' });
+  sessions.push({ id: `s${sessions.length + 1}`, traineeId: 't10', title: 'Onboarding call & movement screen', start: `${today}T19:00:00`, durationMin: 45, location: 'Video call' });
   sessions.push({ id: `s${sessions.length + 1}`, traineeId: 't1', title: 'Monthly progress review', start: `${today}T12:00:00`, durationMin: 30, location: 'Video call' });
-  sessions.push({ id: `s${sessions.length + 1}`, traineeId: null, title: 'Admin: program reviews', start: `${addDays(today, 1)}T08:00:00`, durationMin: 90, location: 'Remote' });
-  return sessions;
+  sessions.push({ id: `s${sessions.length + 1}`, traineeId: null, title: 'Program reviews', start: `${addDays(today, 1)}T08:00:00`, durationMin: 90, location: 'Focus block' });
+  return sessions.sort((a, b) => a.start.localeCompare(b.start));
 }
