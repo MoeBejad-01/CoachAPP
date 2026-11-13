@@ -16,7 +16,8 @@ export function mulberry32(seed: number): () => number {
 }
 
 export function roundTo(n: number, step: number): number {
-  return Math.round(n / step) * step;
+  // toFixed drops float noise like 6.800000000000001.
+  return Number((Math.round(n / step) * step).toFixed(10));
 }
 
 export function clamp(n: number, lo: number, hi: number): number {
@@ -36,6 +37,11 @@ export function e1rm(weight: number, reps: number): number {
 export function fmtKg(n: number): string {
   const unit = document.documentElement.lang === 'ar' ? 'كجم' : 'kg';
   return `${Number.isInteger(n) ? n : n.toFixed(1)} ${unit}`;
+}
+
+/** "7.5 h": hours to one decimal place at most. */
+export function fmtHours(n: number): string {
+  return `${Number(n.toFixed(1))} h`;
 }
 
 export function plural(n: number, word: string, many = word + 's'): string {

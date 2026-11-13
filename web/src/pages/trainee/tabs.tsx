@@ -4,12 +4,12 @@ import { addNote, deleteNote, toggleNoteShared } from '../../data/actions';
 import { shown } from '../../data/layout';
 import { scopeLogs, weekOptions, type Scope } from '../../data/progress';
 import { useAppState } from '../../data/store';
-import type { CheckIn, CheckinColId, Trainee, WorkoutColId, WorkoutLog } from '../../data/types';
+import type { CardioDetail, CheckIn, CheckinColId, Trainee, WorkoutColId, WorkoutLog } from '../../data/types';
 import { Icon } from '../../components/Icon';
 import { Card, Empty, useToast } from '../../components/ui';
 import { useT } from '../../i18n';
-import { fmtDay, fmtShort, fmtStamp, todayISO, weekdayName } from '../../lib/dates';
-import { fmtKg } from '../../lib/util';
+import { addDays, fmtDay, fmtShort, fmtStamp, todayISO, weekdayName } from '../../lib/dates';
+import { fmtHours, fmtKg } from '../../lib/util';
 import { SectionGrid, SetChips, type SectionProps } from './sections';
 
 // ---------- Overview & Progress ----------
@@ -149,6 +149,7 @@ export function WorkoutsTab({ logs }: { logs: WorkoutLog[] }) {
                         <span style={{ fontWeight: 500 }}>{e.exerciseName}{e.pain && <span className="warn small"> · {t('workouts.painLower')}</span>}</span>
                         <div className="stack" style={{ gap: 6 }}>
                           <SetChips sets={e.sets} />
+                          {e.cardio && <span className="chip" style={{ alignSelf: 'flex-start' }}>{cardioLine(t, e.cardio)}</span>}
                           {e.note && <span className="quote">“{e.note}”</span>}
                         </div>
                       </div>
@@ -213,7 +214,87 @@ export function NotesTab({ trainee }: { trainee: Trainee }) {
 
 const CHECKIN_COL: Record<CheckinColId, string> = { date: '130px', weight: '90px', sleep: '70px', energy: '70px', stress: '70px', soreness: '80px', comment: 'minmax(260px, 1fr)' };
 
+/** "32 min · 5.2 km · 145 bpm" */
+function cardioLine(t: ReturnType<typeof useT>, c: CardioDetail): string {
+  return [t('common.minutes', { n: c.minutes }), c.distanceKm ? `${c.distanceKm} km` : '', c.avgHr ? `${c.avgHr} bpm` : '', c.kcal ? `${c.kcal} kcal` : '']
+    .filter(Boolean)
+    .join(' · ');
+}
+
+/** What the trainee logs day to day in the mobile app. */
+function DailyLogCard({ trainee }: { trainee: Trainee }) {
+  const state = useAppState();
+  const t = useT();
+  const from = addDays(todayISO(), -13);
+  const list = (state.dailyLogs ?? []).filter((d) => d.traineeId === trainee.id && d.date >= from).sort((a, b) => b.date.localeCompare(a.date));
+  const cols = '92px 70px 80px 80px 70px 80px minmax(200px, 1fr)';
+  const dash = <span className="faint">–</span>;
+  return (
+    <Card title={t('daily.title')} action={<span className="small muted">{t('daily.sub')}</span>}>
+      <div className="table-scroll">
+        <div style={{ minWidth: 760 }}>
+          <div className="dg-head" style={{ gridTemplateColumns: cols }}>
+            <span>{t('workouts.date')}</span><span>{t('daily.sleep')}</span><span>{t('daily.water')}</span><span>{t('daily.steps')}</span>
+            <span>{t('daily.stress')}</span><span>{t('daily.soreness')}</span><span>{t('daily.food')}</span>
+          </div>
+          {list.map((d) => (
+            <div key={d.date} className="dg-row top" style={{ gridTemplateColumns: cols }}>
+              <span style={{ fontWeight: 500 }}>{fmtDay(d.date)}</span>
+              <span className="mono small">{d.sleepH != null ? fmtHours(d.sleepH) : dash}</span>
+              <span className="mono small">{d.waterMl != null ? `${(d.waterMl / 1000).toFixed(1)} L` : dash}</span>
+              <span className="mono small">{d.steps != null ? d.steps.toLocaleString() : dash}</span>
+              <span className="mono small" dir="ltr">{d.stress != null ? `${d.stress}/5` : dash}</span>
+              <span className="mono small" dir="ltr">{d.soreness != null ? `${d.soreness}/5` : dash}{d.sorenessAreas?.length ? <span className="xs muted"> · {d.sorenessAreas.join(', ')}</span> : null}</span>
+              <span style={{ color: 'var(--ink-2)', lineHeight: 1.5 }}>
+                {d.meals.length ? d.meals.map((m) => [m.text, m.kcal ? `${m.kcal} kcal` : '', m.proteinG ? `${m.proteinG} g` : ''].filter(Boolean).join(' · ')).join(' / ') : dash}
+              </span>
+            </div>
+          ))}
+          {list.length === 0 && <Empty>{t('daily.none')}</Empty>}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function CardioCard({ trainee }: { trainee: Trainee }) {
+  const state = useAppState();
+  const t = useT();
+  const list = (state.cardio ?? []).filter((c) => c.traineeId === trainee.id).sort((a, b) => b.date.localeCompare(a.date));
+  const weekFrom = addDays(todayISO(), -6);
+  const minutes = list.filter((c) => c.date >= weekFrom).reduce((n, c) => n + c.minutes, 0);
+  const cols = '92px 120px minmax(160px, 1fr) 90px minmax(160px, 1fr)';
+  return (
+    <Card title={t('cardio.title')} action={<span className="small muted">{t('cardio.sub', { n: minutes })}</span>}>
+      <div className="table-scroll">
+        <div style={{ minWidth: 640 }}>
+          {list.slice(0, 12).map((c) => (
+            <div key={c.id} className="dg-row top" style={{ gridTemplateColumns: cols }}>
+              <span style={{ fontWeight: 500 }}>{fmtDay(c.date)}</span>
+              <span>{t(`cardio.act.${c.activity}` as 'cardio.act.run')}</span>
+              <span className="mono small">{cardioLine(t, c)}</span>
+              <span className="chip">{t(`cardio.effort.${c.effort}` as 'cardio.effort.1')}</span>
+              <span className="quote">{c.note ? `“${c.note}”` : ''}</span>
+            </div>
+          ))}
+          {list.length === 0 && <Empty>{t('cardio.none')}</Empty>}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 export function CheckinsTab({ trainee }: { trainee: Trainee }) {
+  return (
+    <div className="stack" style={{ gap: 16 }}>
+      <DailyLogCard trainee={trainee} />
+      <CardioCard trainee={trainee} />
+      <WeeklyCheckins trainee={trainee} />
+    </div>
+  );
+}
+
+function WeeklyCheckins({ trainee }: { trainee: Trainee }) {
   const state = useAppState();
   const t = useT();
   const list = state.checkins.filter((c) => c.traineeId === trainee.id).sort((a, b) => b.date.localeCompare(a.date));
@@ -224,7 +305,7 @@ export function CheckinsTab({ trainee }: { trainee: Trainee }) {
     switch (k) {
       case 'date': return <span style={{ fontWeight: 500 }}>{fmtDay(c.date)}</span>;
       case 'weight': return <span className="mono small">{fmtKg(c.weightKg)}</span>;
-      case 'sleep': return <span className="mono small">{c.sleepH} h</span>;
+      case 'sleep': return <span className="mono small">{fmtHours(c.sleepH)}</span>;
       case 'energy': return <span className="mono small" dir="ltr">{c.energy}/5</span>;
       case 'stress': return <span className="mono small" dir="ltr">{c.stress}/5</span>;
       case 'soreness': return <span className="mono small" dir="ltr">{c.soreness}/5</span>;

@@ -278,6 +278,9 @@ export function createSeed(): AppState {
     metricEntries: [],
     importLayouts: [],
     joinRequests: seedJoinRequests(today),
+    cardio: [],
+    dailyLogs: [],
+    skips: [],
     widgets: { kpis: true, attention: true, sessions: true, messages: true, roster: true, adherence: true, prs: true, renewals: false },
   };
 }

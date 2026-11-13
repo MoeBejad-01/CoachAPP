@@ -37,7 +37,7 @@ export function MessagesPage() {
   useEffect(() => setDraft(''), [id]);
 
   const firstWithHistory = list.find((x) => x.last)?.trainee.id;
-  if (!id && firstWithHistory) return <Navigate to={`/messages/${firstWithHistory}`} replace />;
+  if (!id && firstWithHistory) return <Navigate to={`/coach/messages/${firstWithHistory}`} replace />;
 
   const shown = list.filter(({ trainee, last, unread }) => {
     if (onlyUnread && unread === 0) return false;
@@ -78,7 +78,7 @@ export function MessagesPage() {
           </div>
           <div className="items">
             {shown.map(({ trainee, last, unread }) => (
-              <button key={trainee.id} type="button" className={`convo${trainee.id === id ? ' on' : ''}`} onClick={() => navigate(`/messages/${trainee.id}`)}>
+              <button key={trainee.id} type="button" className={`convo${trainee.id === id ? ' on' : ''}`} onClick={() => navigate(`/coach/messages/${trainee.id}`)}>
                 <Avatar trainee={trainee} size={36} />
                 <span className="stack grow" style={{ gap: 3 }}>
                   <span className="row" style={{ justifyContent: 'space-between' }}>
@@ -107,7 +107,7 @@ export function MessagesPage() {
                     <span className="small muted">{active.program ? `${active.program.name}${s?.week ? ` · ${t('common.weekOf', { w: s.week, n: active.program.weeks })}` : ''}` : t('chat.noProgram')}</span>
                   </div>
                 </div>
-                <Link to={`/trainees/${active.id}`} className="btn sm">{t('chat.viewProfile')}</Link>
+                <Link to={`/coach/trainees/${active.id}`} className="btn sm">{t('chat.viewProfile')}</Link>
               </div>
               <div className="chat-scroll" ref={scroller}>
                 {msgs.map((m, i) => <Bubble key={m.id} m={m} prev={msgs[i - 1]} />)}
@@ -150,9 +150,9 @@ export function MessagesPage() {
             </div>
             <div className="stack" style={{ borderTop: '1px solid var(--divider)', paddingTop: 14, gap: 8 }}>
               <span style={{ fontSize: 13, fontWeight: 500 }}>{t('chat.quickActions')}</span>
-              <Link to={`/trainees/${active.id}?tab=program`} className="btn sm" style={{ justifyContent: 'flex-start' }}>{t('chat.adjustProgram')}</Link>
-              <Link to={`/trainees/${active.id}?tab=notes`} className="btn sm" style={{ justifyContent: 'flex-start' }}>{t('chat.writeNote')}</Link>
-              <Link to="/calendar" className="btn sm" style={{ justifyContent: 'flex-start' }}>{t('chat.bookCall')}</Link>
+              <Link to={`/coach/trainees/${active.id}?tab=program`} className="btn sm" style={{ justifyContent: 'flex-start' }}>{t('chat.adjustProgram')}</Link>
+              <Link to={`/coach/trainees/${active.id}?tab=notes`} className="btn sm" style={{ justifyContent: 'flex-start' }}>{t('chat.writeNote')}</Link>
+              <Link to="/coach/calendar" className="btn sm" style={{ justifyContent: 'flex-start' }}>{t('chat.bookCall')}</Link>
             </div>
           </aside>
         )}

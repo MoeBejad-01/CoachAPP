@@ -1,0 +1,142 @@
+/* Public site design tokens: the one place to change colors, type, radii and
+   motion. Light values first, dark overrides below. Every site stylesheet and
+   illustration reads these variables.
+
+   Contrast notes: body text on the backgrounds is AA or better. #86868B is too
+   light for small text on white, so light-mode secondary text uses #6E6E73 and
+   #86868B is kept for placeholders and hairlines. White text sits on #0071E3
+   (button fill) rather than #007AFF, which is 4.0:1 with white. */
+
+.site {
+  /* Surfaces */
+  --c-bg: #ffffff;
+  --c-bg-alt: #f5f5f7;
+  --c-surface: #ffffff;
+  --c-surface-2: #f5f5f7;
+  --c-tint: #e8f6ff;
+  --c-glass: rgba(255, 255, 255, 0.72);
+
+  /* Text */
+  --c-text: #1d1d1f;
+  --c-text-2: #424245;
+  --c-muted: #6e6e73;
+  --c-faint: #86868b;
+
+  /* Lines */
+  --c-line: #d2d2d7;
+  --c-hairline: rgba(0, 0, 0, 0.08);
+  --c-border: #aaaaaa;
+
+  /* Brand */
+  --c-primary: #007aff;
+  --c-primary-fill: #0071e3;
+  --c-primary-fill-hover: #0077ed;
+  --c-primary-soft: rgba(0, 122, 255, 0.1);
+  --c-link: #0066cc;
+  --c-brand: #0b3d91;
+  --c-accent: #3ba7f2;
+  --c-glow: #7fe7d6;
+
+  /* Status */
+  --c-error: #d70015;
+  --c-error-soft: #fff1f0;
+  --c-success: #0f7b6c;
+  --c-success-soft: #e6f8f4;
+  --c-warn: #b25000;
+
+  /* Gradients (used sparingly: hero, CTA band) */
+  --g-brand: linear-gradient(125deg, #0b3d91 0%, #0058d6 48%, #1e8be9 82%, #3ba7f2 100%);
+  --g-headline: linear-gradient(100deg, #0b3d91 0%, #007aff 58%, #2e9bf0 100%);
+  --g-hero-glow: radial-gradient(40% 45% at 72% 40%, rgba(59, 167, 242, 0.22), transparent 70%),
+    radial-gradient(30% 35% at 88% 70%, rgba(127, 231, 214, 0.2), transparent 70%),
+    radial-gradient(35% 40% at 15% 10%, rgba(0, 122, 255, 0.08), transparent 70%);
+
+  /* Elevation */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04), 0 2px 8px -2px rgba(0, 0, 0, 0.06);
+  --shadow: 0 2px 4px rgba(0, 0, 0, 0.03), 0 12px 32px -12px rgba(0, 0, 0, 0.14);
+  --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.04), 0 30px 60px -20px rgba(0, 0, 0, 0.22);
+
+  /* Anatomy figure */
+  --anat-body: #e3e6ec;
+  --anat-body-hi: #f1f3f7;
+  --anat-muscle: #cdd3dd;
+  --anat-gap: #eef0f4;
+
+  /* Device mockups */
+  --frame: #1d1d1f;
+  --frame-edge: #3a3a3c;
+
+  /* Shape & motion */
+  --r-sm: 12px;
+  --r: 20px;
+  --r-lg: 28px;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-soft: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --dur: 600ms;
+
+  /* Type */
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-ar: 'IBM Plex Sans Arabic', 'Tajawal', -apple-system, 'Segoe UI', sans-serif;
+  --nav-h: 64px;
+
+  color-scheme: light;
+}
+
+.site[data-theme='dark'] {
+  --c-bg: #000000;
+  --c-bg-alt: #1d1d1f;
+  --c-surface: #161617;
+  --c-surface-2: #232325;
+  --c-tint: #0b1e33;
+  --c-glass: rgba(22, 22, 23, 0.72);
+
+  --c-text: #f5f5f7;
+  --c-text-2: #d2d2d7;
+  --c-muted: #aaaaaa;
+  --c-faint: #86868b;
+
+  --c-line: #3a3a3c;
+  --c-hairline: rgba(255, 255, 255, 0.1);
+  --c-border: #aaaaaa;
+
+  --c-primary: #0a84ff;
+  --c-primary-fill: #0071e3;
+  --c-primary-fill-hover: #0a84ff;
+  --c-primary-soft: rgba(10, 132, 255, 0.16);
+  --c-link: #2997ff;
+
+  --c-error: #ff6961;
+  --c-error-soft: rgba(255, 105, 97, 0.12);
+  --c-success: #7fe7d6;
+  --c-success-soft: rgba(127, 231, 214, 0.12);
+  --c-warn: #ffb35c;
+
+  --g-headline: linear-gradient(100deg, #3ba7f2 0%, #6fd3f0 55%, #7fe7d6 100%);
+  --g-hero-glow: radial-gradient(40% 45% at 72% 40%, rgba(59, 167, 242, 0.24), transparent 70%),
+    radial-gradient(30% 35% at 88% 72%, rgba(127, 231, 214, 0.14), transparent 70%),
+    radial-gradient(35% 40% at 15% 10%, rgba(11, 61, 145, 0.35), transparent 70%);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 16px 40px -16px rgba(0, 0, 0, 0.8);
+  --shadow-lg: 0 0 0 1px rgba(255, 255, 255, 0.07), 0 30px 70px -20px rgba(0, 0, 0, 0.9);
+
+  --anat-body: #26272b;
+  --anat-body-hi: #313238;
+  --anat-muscle: #3d3f46;
+  --anat-gap: #1f2024;
+
+  --frame: #2c2c2e;
+  --frame-edge: #48484a;
+
+  color-scheme: dark;
+}
+
+/* The page behind the site (overscroll, short pages) matches the theme. */
+html[data-site='light'],
+html[data-site='light'] body { background: #ffffff; }
+html[data-site='dark'],
+html[data-site='dark'] body { background: #000000; color-scheme: dark; }
+html.s-locked { overflow: hidden; }
+@media (prefers-reduced-motion: no-preference) {
+  html[data-site] { scroll-behavior: smooth; }
+}

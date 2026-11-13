@@ -91,7 +91,7 @@ export function NewTraineePage() {
       inbodyRequest: f.inbody ? { note: f.inbodyNote.trim(), message: t('inbody.requestMsg', { name: f.firstName.trim() }) + (f.inbodyNote.trim() ? `\n${f.inbodyNote.trim()}` : '') } : null,
     });
     toast(t('new.createdToast', { name: f.firstName.trim() }));
-    navigate(`/trainees/${id}`);
+    navigate(`/coach/trainees/${id}`);
   };
 
   const last = step === STEPS.length - 1;
@@ -102,7 +102,7 @@ export function NewTraineePage() {
     <div className="tb-page">
       <header className="page-head">
         <div className="stack" style={{ gap: 4 }}>
-          <Link to="/trainees" className="small row" style={{ gap: 4, color: 'var(--muted)' }}><Icon name="chevronLeft" size={14} />{t('nav.trainees')}</Link>
+          <Link to="/coach/trainees" className="small row" style={{ gap: 4, color: 'var(--muted)' }}><Icon name="chevronLeft" size={14} />{t('nav.trainees')}</Link>
           <h1 className="page-title">{t('new.title')}</h1>
           <p className="muted">{t('new.subtitle')}</p>
         </div>

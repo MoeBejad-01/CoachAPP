@@ -10,7 +10,8 @@ import { defaultLayout, normalizeLayout } from './layout';
 import { normalizeGuide } from './guide';
 import type {
   AppState, CheckIn, Coach, Goal, ImportLayout, InBodyRequest, InBodyScan, LogEntry, Message, MetricEntry,
-  JoinRequest, Note, ProgramWeek, Session, Template, Trainee, WeightEntry, WidgetId, WorkoutLog,
+  CardioSession, DailyLog, JoinRequest, Note, ProgramWeek, Session, SkippedSession, Template, Trainee,
+  WeightEntry, WidgetId, WorkoutLog,
 } from './types';
 
 export type Role = 'coach' | 'trainee';
@@ -21,6 +22,9 @@ const KIND_TO_LOCATION: Record<string, Session['location']> = { video: 'Video ca
 const LOCATION_TO_KIND: Record<Session['location'], string> = { 'Video call': 'video', 'Voice call': 'voice', 'Focus block': 'focus' };
 const num = (v: unknown): number => (v === null || v === undefined ? 0 : Number(v));
 const numOrNull = (v: unknown): number | null => (v === null || v === undefined ? null : Number(v));
+/** Columns the trainee app may leave empty are optional in the app's types, not null. */
+const opt = (v: unknown): number | undefined => (v === null || v === undefined ? undefined : Number(v));
+const optStr = (v: unknown): string | undefined => (v === null || v === undefined || v === '' ? undefined : String(v));
 
 /** Reads every row of a table (PostgREST returns at most 1000 per request). */
 async function fetchAll(db: SupabaseClient, table: string, select = '*'): Promise<Row[]> {
@@ -36,7 +40,7 @@ async function fetchAll(db: SupabaseClient, table: string, select = '*'): Promis
 // ---------- Loading ----------
 
 export async function loadRemoteState(db: SupabaseClient, role: Role, userId: string): Promise<AppState> {
-  const [coaches, trainees, priv, goals, members, templates, programs, weeks, logs, entries, sets, weights, checkins, scans, requests, metrics, notes, messages, calls, layouts, joins] = await Promise.all([
+  const [coaches, trainees, priv, goals, members, templates, programs, weeks, logs, entries, sets, weights, checkins, scans, requests, metrics, notes, messages, calls, layouts, joins, daily, cardio, skips] = await Promise.all([
     fetchAll(db, 'coaches'), fetchAll(db, 'trainees'), role === 'coach' ? fetchAll(db, 'trainee_private') : Promise.resolve([]),
     fetchAll(db, 'goals'), fetchAll(db, 'memberships'), role === 'coach' ? fetchAll(db, 'templates') : Promise.resolve([]),
     fetchAll(db, 'programs'), fetchAll(db, 'program_weeks'), fetchAll(db, 'workout_logs'), fetchAll(db, 'log_entries'), fetchAll(db, 'log_sets'),
@@ -44,6 +48,8 @@ export async function loadRemoteState(db: SupabaseClient, role: Role, userId: st
     fetchAll(db, 'notes'), fetchAll(db, 'messages'), fetchAll(db, 'calls'), role === 'coach' ? fetchAll(db, 'import_layouts') : Promise.resolve([]),
     // Join requests are the coach's inbox from their public page; a trainee never loads them.
     role === 'coach' ? fetchAll(db, 'join_requests') : Promise.resolve([]),
+    // What the trainee app logs beyond workouts.
+    fetchAll(db, 'daily_logs'), fetchAll(db, 'cardio_sessions'), fetchAll(db, 'skipped_sessions'),
   ]);
 
   const coachRow = (role === 'coach' ? coaches.find((c) => c.id === userId) : coaches[0]) ?? {};
@@ -111,6 +117,21 @@ export async function loadRemoteState(db: SupabaseClient, role: Role, userId: st
       answers: (r.answers as JoinRequest['answers']) ?? {}, planId: String(r.plan_id ?? ''), message: String(r.message ?? ''),
       status: r.status as JoinRequest['status'], sentAt: String(r.sent_at), traineeId: (r.trainee_id as string | null) ?? null,
     })).sort((a, b) => b.sentAt.localeCompare(a.sentAt)),
+    dailyLogs: daily.map((r): DailyLog => ({
+      traineeId: String(r.trainee_id), date: String(r.date), sleepH: opt(r.sleep_h), waterMl: opt(r.water_ml), steps: opt(r.steps),
+      stress: opt(r.stress), soreness: opt(r.soreness), sorenessAreas: (r.soreness_areas as string[]) ?? [],
+      meals: (r.meals as DailyLog['meals']) ?? [],
+    })).sort((a, b) => a.date.localeCompare(b.date)),
+    cardio: cardio.map((r): CardioSession => ({
+      id: String(r.id), traineeId: String(r.trainee_id), date: String(r.date), activity: r.activity as CardioSession['activity'],
+      effort: num(r.effort), minutes: num(r.minutes), distanceKm: opt(r.distance_km), kcal: opt(r.kcal), avgHr: opt(r.avg_hr),
+      note: optStr(r.note),
+    })).sort((a, b) => a.date.localeCompare(b.date)),
+    skips: skips.map((r): SkippedSession => ({
+      id: String(r.id), traineeId: String(r.trainee_id), weekStart: String(r.week_start), date: String(r.date),
+      dayId: String(r.day_id), dayName: String(r.day_name), reason: r.reason as SkippedSession['reason'],
+      note: optStr(r.note), at: String(r.at),
+    })),
   };
 }
 
@@ -261,6 +282,28 @@ export async function saveDiff(c: Ctx, prev: AppState, next: AppState) {
     // One check-in per trainee per day: a resubmission replaces the day's row.
     const d = diff(prev.checkins, next.checkins, (x) => `${x.traineeId}|${x.date}`);
     if (d.changed.length) await must(db.from('checkins').upsert(d.changed.map((x) => ({ trainee_id: x.traineeId, date: x.date, weight_kg: x.weightKg, sleep_h: x.sleepH, energy: x.energy, stress: x.stress, soreness: x.soreness, comment: x.comment })), { onConflict: 'trainee_id,date' }), 'check-ins');
+  }
+  if (prev.dailyLogs !== next.dailyLogs) {
+    // One row per trainee per day; the app sends the whole day, so a later edit replaces it.
+    const d = diff(prev.dailyLogs, next.dailyLogs, (x) => `${x.traineeId}|${x.date}`);
+    if (d.changed.length) {
+      await must(db.from('daily_logs').upsert(d.changed.map((x) => ({
+        trainee_id: x.traineeId, date: x.date, sleep_h: x.sleepH ?? null, water_ml: x.waterMl ?? null, steps: x.steps ?? null,
+        stress: x.stress ?? null, soreness: x.soreness ?? null, soreness_areas: x.sorenessAreas ?? [], meals: x.meals ?? [],
+      })), { onConflict: 'trainee_id,date' }), 'daily logs');
+    }
+  }
+  if (prev.cardio !== next.cardio) {
+    await saveSimple(c, 'cardio_sessions', prev.cardio, next.cardio, (x) => ({
+      id: x.id, trainee_id: x.traineeId, date: x.date, activity: x.activity, effort: x.effort, minutes: x.minutes,
+      distance_km: x.distanceKm ?? null, kcal: x.kcal ?? null, avg_hr: x.avgHr ?? null, note: x.note ?? '',
+    }));
+  }
+  if (prev.skips !== next.skips) {
+    await saveSimple(c, 'skipped_sessions', prev.skips, next.skips, (x) => ({
+      id: x.id, trainee_id: x.traineeId, week_start: x.weekStart, date: x.date, day_id: x.dayId, day_name: x.dayName,
+      reason: x.reason, note: x.note ?? '', at: x.at,
+    }));
   }
   if (prev.notes !== next.notes) await saveSimple(c, 'notes', prev.notes, next.notes, (n) => ({ id: n.id, trainee_id: n.traineeId, text: n.text, shared: n.shared, created_at: n.at }));
   if (prev.messages !== next.messages) await saveMessages(c, prev, next);

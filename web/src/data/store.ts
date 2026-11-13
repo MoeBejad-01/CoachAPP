@@ -1,7 +1,10 @@
-// The app's single store. Two modes:
-// - local: everything lives in localStorage (demo mode, used when Supabase isn't configured);
-// - remote: state is loaded from Supabase for the signed-in user and every change is saved back
-//   in the background (see remote.ts). Pages and actions work the same in both.
+// The app's single store. Where the workspace lives depends on how it's set up:
+// - remote: loaded from Supabase for the signed-in user, every change saved back in the
+//   background (see remote.ts). This is the real backend.
+// - local: everything in localStorage (demo mode, when Supabase isn't configured). In this
+//   mode the workspace is also shared with the local sync API (sync.ts) so the trainee app
+//   can run against it without a project.
+// Pages and actions work the same either way.
 
 import { useSyncExternalStore } from 'react';
 import { normalizeLayout } from './layout';
@@ -10,6 +13,7 @@ import { defaultPrice, planName, tierFromMode } from './plans';
 import { latestKg, migrateProgram } from './plan';
 import { createSeed, STATE_VERSION } from './seed';
 import { loadRemoteState, saveDiff, type Role } from './remote';
+import { localChanged, replaceRemote, startSync } from './sync';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { AppState, Trainee } from './types';
 
@@ -57,6 +61,9 @@ function repair(s: AppState): AppState {
     ...(s.inbody ? {} : (({ inbody, inbodyRequests }) => ({ inbody, inbodyRequests }))(createSeed())),
     metricEntries: s.metricEntries ?? [],
     importLayouts: s.importLayouts ?? [],
+    cardio: s.cardio ?? [],
+    dailyLogs: s.dailyLogs ?? [],
+    skips: s.skips ?? [],
     // Workspaces saved before the public page existed get the demo requests, so the page isn't empty.
     joinRequests: s.joinRequests ?? createSeed().joinRequests,
     // "Hybrid" used to tag strength + cardio programs; renamed so it isn't read as hybrid (in-person) coaching.
@@ -130,29 +137,39 @@ export function useSyncStatus(): SyncStatus {
   return useSyncExternalStore((l) => { syncListeners.add(l); return () => syncListeners.delete(l); }, () => sync);
 }
 
+/** Swaps in new state. Persists locally unless the workspace lives in Supabase. */
+function set(next: AppState) {
+  state = next;
+  if (!remote) persist(state);
+  listeners.forEach((l) => l());
+}
+
 export function update(recipe: (s: AppState) => AppState) {
   const prev = state;
-  state = recipe(state);
+  const next = recipe(prev);
+  if (next === prev) return;
+  set(next);
   if (remote) {
     // Saves run one after another so related writes (a trainee, then their program) stay in order.
     const ctx = remote;
-    const next = state;
     setSync({ pending: sync.pending + 1 });
     queue = queue
       .then(() => saveDiff(ctx, prev, next))
       .then(() => setSync({ pending: sync.pending - 1, error: null }))
       .catch((e: unknown) => setSync({ pending: sync.pending - 1, error: e instanceof Error ? e.message : String(e) }));
   } else {
-    persist(state);
+    localChanged();
   }
-  listeners.forEach((l) => l());
 }
 
 export function resetState() {
-  state = createSeed();
-  persist(state);
-  listeners.forEach((l) => l());
+  set(createSeed());
+  if (!remote) replaceRemote(state);
 }
+
+// Share the workspace with the local sync API (and so with the mobile app).
+// A workspace saved before cardio and daily logs existed gets empty lists.
+startSync({ get: getState, adopt: (s) => { if (!remote) set(repair(s)); }, version: STATE_VERSION });
 
 function subscribe(listener: () => void) {
   listeners.add(listener);

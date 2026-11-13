@@ -40,18 +40,19 @@ export function Layout() {
 
         <div className="nav-group">
           <div className="nav-label">{t('nav.general')}</div>
-          <Item to="/" end icon="grid" label={t('nav.overview')} />
-          <Item to="/trainees" icon="users" label={t('nav.trainees')} extra={<span className="nav-count">{state.trainees.length}</span>} />
-          <Item to="/requests" icon="user" label={t('nav.requests')} extra={waiting > 0 ? <span className="nav-badge">{waiting}</span> : null} />
-          <Item to="/history" icon="calendar" label={t('nav.history')} />
-          <Item to="/programs" icon="clipboard" label={t('nav.programs')} />
-          <Item to="/messages" icon="message" label={t('nav.messages')} extra={unread > 0 ? <span className="nav-badge">{unread}</span> : null} />
-          <Item to="/calendar" icon="bolt" label={t('nav.calendar')} />
+          <Item to="/coach" end icon="grid" label={t('nav.overview')} />
+          <Item to="/coach/trainees" icon="users" label={t('nav.trainees')} extra={<span className="nav-count">{state.trainees.length}</span>} />
+          <Item to="/coach/requests" icon="user" label={t('nav.requests')} extra={waiting > 0 ? <span className="nav-badge">{waiting}</span> : null} />
+          <Item to="/coach/history" icon="calendar" label={t('nav.history')} />
+          <Item to="/coach/programs" icon="clipboard" label={t('nav.programs')} />
+          <Item to="/coach/messages" icon="message" label={t('nav.messages')} extra={unread > 0 ? <span className="nav-badge">{unread}</span> : null} />
+          <Item to="/coach/calendar" icon="bolt" label={t('nav.calendar')} />
         </div>
         <div className="nav-group">
           <div className="nav-label">{t('nav.management')}</div>
-          <Item to="/billing" icon="card" label={t('nav.billing')} />
-          <Item to="/settings" icon="sliders" label={t('nav.settings')} />
+          <Item to="/coach/billing" icon="card" label={t('nav.billing')} />
+          <Item to="/coach/settings" icon="sliders" label={t('nav.settings')} />
+          <Item to="/app" icon="play" label={t('nav.traineeApp')} />
         </div>
 
         <div className="side-foot">

@@ -65,7 +65,7 @@ export function BillingPage() {
             </div>
             {shown.map(({ tr, days, status }) => (
               <div key={tr.id} className="dg-row" style={{ gridTemplateColumns: COLS }}>
-                <span className="row" style={{ gap: 10, minWidth: 0 }}><Avatar trainee={tr} size={30} /><Link to={`/trainees/${tr.id}`} className="ellipsis" style={{ color: 'var(--ink)', fontWeight: 500 }}>{fullName(tr)}</Link></span>
+                <span className="row" style={{ gap: 10, minWidth: 0 }}><Avatar trainee={tr} size={30} /><Link to={`/coach/trainees/${tr.id}`} className="ellipsis" style={{ color: 'var(--ink)', fontWeight: 500 }}>{fullName(tr)}</Link></span>
                 <span className="ellipsis" style={{ color: 'var(--ink-2)' }}>{t(`tier.${tr.tier}`)}</span>
                 <span className="mono small">{formatMoney(tr.membership.price)}</span>
                 <span style={{ color: 'var(--ink-2)' }}>{t(`cycle.${tr.membership.cycle}`)}</span>

@@ -1,0 +1,189 @@
+/* Join a coach: the intake form at /join/<coach>. Tokens from theme.css,
+   pills and avatars from coach.css, fields and buttons from site.css. */
+
+.jn { min-height: 100vh; background: var(--c-bg-alt); }
+.site[data-theme='dark'].jn { background: var(--c-bg); }
+
+/* ---------- Top bar ---------- */
+
+.jn-top {
+  position: sticky; top: 0; z-index: 30; height: var(--nav-h);
+  background: var(--c-glass); border-bottom: 1px solid var(--c-hairline);
+  -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px);
+}
+.jn-top-in { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 100%; }
+.jn-back { display: inline-flex; align-items: center; gap: 10px; min-width: 0; color: var(--c-text) !important; text-decoration: none !important; }
+.jn-back > svg { flex: none; color: var(--c-muted); }
+.jn-back > span:last-child { display: grid; min-width: 0; line-height: 1.25; }
+.jn-back small { font-size: 12px; color: var(--c-muted); }
+.jn-back b { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.jn-tools { display: flex; align-items: center; gap: 8px; }
+@media (max-width: 520px) {
+  .jn-back small, .jn-tools .s-icon-btn { display: none; }
+  .jn-tools { gap: 4px; }
+  .jn-home { padding-inline: 8px; }
+}
+
+.jn-main { padding: 32px 0 80px; }
+
+/* ---------- Layout: form + live preview ---------- */
+
+.jn-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 28px; align-items: start; max-width: 1080px; margin: 0 auto; }
+.jn-form { display: grid; gap: 28px; padding: 32px 40px 36px; scroll-margin-top: calc(var(--nav-h) + 16px); }
+.jn-aside { position: sticky; top: calc(var(--nav-h) + 24px); }
+.jn-review { display: none; }
+@media (max-width: 980px) {
+  .jn-grid { grid-template-columns: minmax(0, 1fr); max-width: 680px; }
+  .jn-aside { display: none; }
+  .jn-review { display: block; }
+}
+@media (max-width: 600px) {
+  .jn-main { padding: 16px 0 56px; }
+  .jn-form { padding: 22px 18px 26px; gap: 24px; border-radius: 24px; }
+}
+
+/* ---------- Progress: a barbell that loads a plate per step ---------- */
+
+.jn-progress { display: grid; gap: 10px; scroll-margin-top: calc(var(--nav-h) + 16px); }
+.jn-bar { max-width: 460px; width: 100%; margin: -8px auto 0; }
+.jn-steps { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; counter-reset: step; }
+.jn-steps li { position: relative; padding-top: 10px; font-size: 12.5px; text-align: center; color: var(--c-faint); }
+.jn-steps li::before { content: ''; position: absolute; top: 0; inset-inline: 0; height: 4px; border-radius: 2px; background: var(--c-line); transition: background-color 0.4s; }
+.jn-steps li.is-done::before { background: var(--c-primary); }
+.jn-steps li.is-current::before { background: linear-gradient(90deg, var(--c-primary), var(--c-glow)); }
+.jn-steps li.is-current { color: var(--c-text); font-weight: 600; }
+.jn-steps button { padding: 2px 4px; border: 0; background: none; color: var(--c-link); font-size: inherit; cursor: pointer; }
+.jn-steps button:hover { text-decoration: underline; }
+@media (max-width: 600px) {
+  .jn-steps li { font-size: 0; padding-top: 6px; }
+  .jn-steps li.is-current { font-size: 0; }
+  .jn-bar { max-width: 320px; }
+}
+
+.jn-head { display: grid; gap: 8px; }
+.jn-head .s-eyebrow { margin-bottom: 0 !important; }
+.jn-head h1 { font-size: clamp(28px, 3.4vw, 36px); line-height: 1.12; letter-spacing: -0.03em; }
+:root[lang='ar'] .jn-head h1 { line-height: 1.4; }
+.jn-head > p:last-child { font-size: 16.5px; color: var(--c-muted); }
+
+.jn-fields { display: grid; gap: 22px; animation: jn-in 0.45s var(--ease); }
+@keyframes jn-in { from { opacity: 0; transform: translateY(10px); } }
+
+.jn-nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 20px; border-top: 1px solid var(--c-hairline); }
+.jn-nav .s-btn--ghost { padding-inline: 10px; }
+.jn-private { display: flex; align-items: flex-start; gap: 8px; font-size: 13.5px; color: var(--c-muted); }
+.jn-private svg { flex: none; margin-top: 2px; }
+
+/* ---------- Form controls ---------- */
+
+.jf-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.jf-row--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.jf-row--tight { gap: 10px; }
+@media (max-width: 600px) {
+  .jf-row { grid-template-columns: minmax(0, 1fr); }
+  .jf-row--tight, .jf-row--3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.jf-group { display: grid; gap: 10px; min-width: 0; margin: 0; padding: 0; border: 0; outline: none; }
+.jf-legend { padding: 0; font-size: 14px; font-weight: 600; color: var(--c-text-2); }
+.jf-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.jf-group:focus-visible .jf-legend { text-decoration: underline; }
+
+.jf-cards { display: grid; grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr)); gap: 10px; }
+.jf-card {
+  position: relative; display: flex; align-items: center; gap: 12px; padding: 14px 40px 14px 14px; border-radius: 18px; cursor: pointer;
+  border: 1.5px solid var(--c-line); background: var(--c-surface); transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+}
+:root[dir='rtl'] .jf-card { padding: 14px 14px 14px 40px; }
+.jf-card:hover { border-color: var(--c-border); }
+/* Three across: icon on top so the titles don't wrap into narrow columns. */
+.jf-cards--stack .jf-card, :root[dir='rtl'] .jf-cards--stack .jf-card { flex-direction: column; align-items: flex-start; gap: 10px; padding: 14px; }
+.jf-cards--stack .jf-tick { top: 14px; margin-top: 0; }
+.jf-card input { position: absolute; opacity: 0; pointer-events: none; }
+.jf-card:has(input:focus-visible) { outline: 3px solid var(--c-primary); outline-offset: 2px; }
+.jf-card.is-on { border-color: var(--c-primary); background: var(--c-primary-soft); }
+.jf-card-ico { width: 40px; height: 40px; flex: none; border-radius: 12px; display: grid; place-items: center; background: var(--c-surface-2); color: var(--c-text-2); transition: background-color 0.2s, color 0.2s; }
+.jf-card.is-on .jf-card-ico { background: var(--c-primary-fill); color: #fff; }
+.jf-card-text { display: grid; gap: 2px; min-width: 0; }
+.jf-card-text b { font-size: 15px; line-height: 1.3; }
+.jf-card-text span { font-size: 13px; line-height: 1.35; color: var(--c-muted); }
+.jf-tick {
+  position: absolute; top: 50%; inset-inline-end: 12px; width: 20px; height: 20px; margin-top: -10px; border-radius: 50%;
+  display: grid; place-items: center; border: 1.5px solid var(--c-line); color: #fff; transition: background-color 0.2s, border-color 0.2s;
+}
+.jf-tick svg { opacity: 0; transition: opacity 0.2s; }
+.jf-card.is-on .jf-tick { background: var(--c-primary-fill); border-color: var(--c-primary-fill); }
+.jf-card.is-on .jf-tick svg { opacity: 1; }
+.jf-group.has-error .jf-card { border-color: color-mix(in srgb, var(--c-error), var(--c-line) 50%); }
+@media (max-width: 760px) { .jf-cards { grid-template-columns: repeat(min(var(--cols, 2), 2), minmax(0, 1fr)); } }
+@media (max-width: 480px) { .jf-cards { grid-template-columns: minmax(0, 1fr); } }
+
+.jf-unit { position: relative; }
+.jf-unit input { padding-inline-end: 56px; }
+.jf-unit span {
+  position: absolute; top: 50%; inset-inline-end: 16px; transform: translateY(-50%);
+  font-size: 15px; font-weight: 500; color: var(--c-muted); pointer-events: none;
+}
+.jf-units { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+
+/* Body map: front and back, each muscle group a toggle */
+.jf-body { display: grid; gap: 16px; }
+.jf-body-figs { display: flex; justify-content: center; gap: 28px; padding: 18px 12px 10px; border-radius: 20px; background: var(--c-surface-2); }
+.site[data-theme='dark'] .jf-body-figs { background: var(--c-bg); }
+.jf-body-view { display: grid; justify-items: center; gap: 6px; margin: 0; }
+.jf-body-view svg { display: block; height: 250px; width: auto; overflow: visible; }
+.jf-body-view figcaption { font-size: 12px; font-weight: 600; color: var(--c-muted); }
+.jf-skin { fill: var(--anat-body); stroke: var(--anat-body); stroke-width: 0.8; }
+.jf-muscle { cursor: pointer; }
+.jf-muscle path { fill: var(--anat-muscle); stroke: var(--anat-gap); stroke-width: 1.1; stroke-linejoin: round; transition: fill 0.25s; }
+.jf-muscle:hover path { fill: color-mix(in srgb, var(--anat-muscle), var(--c-accent) 40%); }
+.jf-muscle.is-on path { fill: var(--c-accent); }
+@media (max-width: 480px) {
+  .jf-body-figs { gap: 12px; }
+  .jf-body-view svg { height: 210px; }
+}
+
+/* ---------- What the coach will see ---------- */
+
+.jn-preview {
+  display: grid; gap: 16px; padding: 22px; border-radius: 26px;
+  background: var(--c-surface); border: 1px solid var(--c-hairline); box-shadow: var(--shadow);
+}
+.jn-review .jn-preview { background: var(--c-surface-2); box-shadow: none; }
+.jn-pv-title { display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; color: var(--c-primary); }
+.jn-pv-who { display: flex; align-items: center; gap: 12px; }
+.jn-pv-who > div { display: grid; min-width: 0; }
+.jn-pv-who b { font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.jn-pv-who span { font-size: 13px; color: var(--c-muted); }
+.jn-pv-av { width: 46px; height: 46px; flex: none; border-radius: 50%; display: grid; place-items: center; font-weight: 700; color: #fff; background: var(--g-brand); font-family: var(--font); }
+.jn-pv-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0; }
+.jn-pv-stats div { padding: 10px 12px; border-radius: 14px; background: var(--c-surface-2); }
+.jn-review .jn-pv-stats div { background: var(--c-surface); }
+.jn-pv-stats dt { font-size: 11.5px; color: var(--c-muted); }
+.jn-pv-stats dd { margin: 2px 0 0; font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+:root[dir='rtl'] .jn-pv-stats dd[dir='ltr'] { text-align: end; }
+.jn-pv-rows { display: grid; margin: 0; }
+.jn-pv-row { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid var(--c-hairline); font-size: 13.5px; }
+.jn-pv-row dt { flex: none; color: var(--c-muted); }
+.jn-pv-row dd { margin: 0; text-align: end; font-weight: 500; }
+.jn-pv-tags { display: inline-flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
+.jn-pv-tags i { padding: 2px 8px; border-radius: 980px; font-style: normal; font-size: 12px; color: var(--c-primary); background: var(--c-primary-soft); }
+
+/* ---------- Sent ---------- */
+
+.jn-sent { max-width: 640px; margin: 24px auto 0; padding: 40px 40px 36px; display: grid; justify-items: center; gap: 12px; text-align: center; }
+.jn-sent-bar { position: relative; width: min(100%, 420px); margin-bottom: 8px; }
+.jn-sent-badge {
+  position: absolute; top: 50%; left: 50%; width: 56px; height: 56px; margin: -34px 0 0 -28px; border-radius: 50%;
+  display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, #0f7b6c, #0071e3);
+  box-shadow: 0 0 0 6px var(--c-surface), 0 10px 30px -8px rgba(0, 113, 227, 0.6); animation: s-pop 0.6s var(--ease) 0.5s both;
+}
+.jn-sent h1 { font-size: clamp(28px, 3.6vw, 36px); letter-spacing: -0.03em; line-height: 1.15; }
+:root[lang='ar'] .jn-sent h1 { line-height: 1.4; }
+.jn-sent-when { max-width: 34em; color: var(--c-muted); }
+.jn-next { display: grid; gap: 10px; width: 100%; margin: 16px 0 8px !important; text-align: start; }
+.jn-next li { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border-radius: 16px; background: var(--c-surface-2); font-size: 15px; }
+.jn-next li span { width: 26px; height: 26px; flex: none; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700; color: var(--c-primary); background: var(--c-primary-soft); }
+.jn-sent-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 8px; }
+.jn-coach .s-ico { width: 56px; height: 56px; border-radius: 18px; margin-bottom: 4px; }
+@media (max-width: 600px) { .jn-sent { padding: 28px 20px; margin-top: 8px; } }
