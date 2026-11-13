@@ -199,8 +199,12 @@ function statFor(id: StatId, { state, trainee, stats, logs, t, today, warnAt }: 
 
 function detailFor(id: DetailId, tr: Trainee, t: T): string {
   switch (id) {
-    case 'age': return t('custom.meta.age', { n: ageFrom(tr.birthDate) });
-    case 'height': return t('custom.meta.height', { n: tr.heightCm });
+    // A trainee approved from a join request may not have given a birth date or height.
+    case 'age': {
+      const years = tr.birthDate ? ageFrom(tr.birthDate) : NaN;
+      return Number.isFinite(years) ? t('custom.meta.age', { n: years }) : '';
+    }
+    case 'height': return tr.heightCm > 0 ? t('custom.meta.height', { n: tr.heightCm }) : '';
     case 'since': return t('custom.meta.since', { date: fmtLong(tr.joinedAt) });
     case 'seen': return t('custom.meta.seen', { ago: fmtAgo(tr.lastSeenAt) });
     case 'contact': return [tr.email, tr.phone].filter(Boolean).join(' · ');
