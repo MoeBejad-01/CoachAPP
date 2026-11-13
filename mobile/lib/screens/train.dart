@@ -14,7 +14,10 @@ import '../data/store.dart';
 import '../widgets/muscle_map.dart';
 import '../widgets/anatomy_shapes.dart';
 import '../widgets/ui.dart';
+import 'cardio.dart';
 import 'shell.dart';
+import 'skip.dart';
+import 'technique.dart';
 import 'workout.dart';
 
 class TrainScreen extends StatefulWidget {
@@ -145,10 +148,24 @@ class _TrainScreenState extends State<TrainScreen> {
                   for (var k = 0; k < 7; k++)
                     if (slots.contains(Day.dow(Day.add(start, k))) && slots.indexOf(Day.dow(Day.add(start, k))) % week.days.length == d) Day.add(start, k),
                 ],
+                weekStart: start,
                 logs: s.logs,
               ),
               const SizedBox(height: 10),
             ],
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(CupertinoIcons.arrow_right_arrow_left, size: 15, color: context.c.muted),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(t('train.flexible'), style: context.text.bodySmall)),
+                ],
+              ),
+            ),
+            SectionHeader(t('cardio.title')),
+            const CardioWeekCard(),
           ],
         );
       },
@@ -157,20 +174,26 @@ class _TrainScreenState extends State<TrainScreen> {
 }
 
 class _DayCard extends StatelessWidget {
-  const _DayCard({required this.day, required this.dates, required this.logs});
+  const _DayCard({required this.day, required this.dates, required this.weekStart, required this.logs});
   final ProgramDay day;
   final List<String> dates;
+  final String weekStart;
   final List<WorkoutLog> logs;
 
   @override
   Widget build(BuildContext context) {
     final c = context.c;
     final date = dates.isEmpty ? null : dates.first;
-    final log = date == null ? null : logs.where((l) => l.date == date).firstOrNull;
+    // Flexible days: the session counts whichever day of the week it was trained.
+    final end = Day.add(weekStart, 6);
+    final log = logs.where((l) => l.date.compareTo(weekStart) >= 0 && l.date.compareTo(end) <= 0 && sameSession(l, day)).firstOrNull;
+    final skip = log == null ? context.store.s.skips.where((k) => k.weekStart == weekStart && k.dayId == day.id).firstOrNull : null;
     final (label, color) = switch ((log, date)) {
+      _ when skip != null => (skipLabel(skip), c.warn),
+      (WorkoutLog l, _) when l.date != date => (t('train.status.doneOn', {'day': Fmt.weekdayShort(Day.date(l.date))}), c.success),
       (WorkoutLog _, _) => (t('train.status.done'), c.success),
       (_, String d) when d == Day.today => (t('train.status.today'), c.primary),
-      (_, String d) when d.compareTo(Day.today) < 0 => (t('train.status.missed'), c.faint),
+      (_, String d) when d.compareTo(Day.today) < 0 => (t('train.status.catchUp'), c.warn),
       _ => (date == null ? t('train.status.flex') : Fmt.weekdayShort(Day.date(date)), c.muted),
     };
     final muscles = setsByMuscleForDay(day);
@@ -327,7 +350,12 @@ class _ExerciseCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(e.name, style: context.text.titleSmall),
+                Row(
+                  children: [
+                    Expanded(child: Text(e.name, style: context.text.titleSmall)),
+                    TechniqueButton(name: e.name, exercise: e),
+                  ],
+                ),
                 const SizedBox(height: 6),
                 Wrap(
                   spacing: 6,

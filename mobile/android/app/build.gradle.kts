@@ -47,3 +47,8 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // On-device text recognition for reading InBody reports (MainActivity.kt).
+    implementation("com.google.mlkit:text-recognition:16.0.1")
+}

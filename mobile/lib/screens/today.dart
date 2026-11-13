@@ -12,10 +12,14 @@ import '../data/models.dart';
 import '../data/schedule.dart';
 import '../data/store.dart';
 import '../widgets/barbell.dart';
+import '../widgets/glyph.dart';
 import '../widgets/ui.dart';
+import 'cardio.dart';
 import 'checkin.dart';
+import 'habits.dart';
 import 'inbody.dart';
 import 'shell.dart';
+import 'skip.dart';
 import 'train.dart';
 import 'workout.dart';
 
@@ -43,15 +47,17 @@ class _TodayScreenState extends State<TodayScreen> {
         return TabPage(
           subtitle: Fmt.longDay(DateTime.now()),
           title: t(_greeting(), {'name': s.trainee.firstName}),
-          trailing: const SyncDot(),
           children: [
             const SizedBox(height: 12),
             _WeekStrip(week: week, selected: selected.date, onSelect: (d) => setState(() => _day = d)),
             const SizedBox(height: 14),
             _SessionCard(plan: selected),
-            const SizedBox(height: 14),
-            _WeekBarbell(week: week),
+            const HabitsCard(),
             ..._tasks(context, s),
+            SectionHeader(t('today.week.title')),
+            _WeekBarbell(week: week),
+            const SizedBox(height: 10),
+            const CardioWeekCard(showList: false),
             _Targets(s: s),
             if (s.trainee.goals.isNotEmpty) _Goals(goals: s.trainee.goals),
           ],
@@ -61,15 +67,14 @@ class _TodayScreenState extends State<TodayScreen> {
   }
 
   List<Widget> _tasks(BuildContext context, Snapshot s) {
-    final c = context.c;
     final items = <Widget>[];
     final ci = checkinStatus(s);
     if (ci != null && ci.due) {
       final today = ci.since == Day.today;
       items.add(
         _Task(
-          icon: CupertinoIcons.square_list,
-          color: c.primary,
+          icon: Sym.checkin,
+          tone: Tone.blue,
           title: t('task.checkin.title'),
           body: today ? t('task.checkin.today', {'name': s.coach.firstName}) : t('task.checkin.late', {'day': Fmt.weekdayShort(Day.date(ci.since))}),
           action: t('task.checkin.action'),
@@ -81,8 +86,8 @@ class _TodayScreenState extends State<TodayScreen> {
     if (ib != null) {
       items.add(
         _Task(
-          icon: CupertinoIcons.waveform_path_ecg,
-          color: Tokens.accent,
+          icon: Sym.inbody,
+          tone: Tone.sky,
           title: t('task.inbody.title', {'name': s.coach.firstName}),
           body: ib.note.isEmpty ? t('task.inbody.body') : '“${ib.note}”',
           action: t('task.inbody.action'),
@@ -95,8 +100,8 @@ class _TodayScreenState extends State<TodayScreen> {
       final last = s.messages.lastWhere((m) => m.fromCoach);
       items.add(
         _Task(
-          icon: CupertinoIcons.chat_bubble_text_fill,
-          color: c.success,
+          icon: Sym.chat,
+          tone: Tone.green,
           title: tn('task.messages.title', unread, {'name': s.coach.firstName}),
           body: last.text,
           action: t('task.messages.action'),
@@ -110,8 +115,8 @@ class _TodayScreenState extends State<TodayScreen> {
       final next = upcoming.first;
       items.add(
         _Task(
-          icon: next.location == 'Video call' ? CupertinoIcons.video_camera_solid : CupertinoIcons.person_2_fill,
-          color: Tokens.brand,
+          icon: next.location == 'Video call' ? Sym.video : Sym.session,
+          tone: Tone.navy,
           title: next.title,
           body: t('task.session.body', {
             'day': Fmt.relativeDay(Day.iso(next.startDate)),
@@ -149,10 +154,14 @@ class _WeekStrip extends StatelessWidget {
                 duration: const Duration(milliseconds: 220),
                 margin: const EdgeInsets.symmetric(horizontal: 2.5),
                 padding: const EdgeInsets.symmetric(vertical: 10),
+                // Today is filled blue when selected; another selected day gets a soft blue outline.
                 decoration: BoxDecoration(
-                  color: d.date == selected ? (d.isToday ? Tokens.fill : c.text) : c.surface,
+                  color: d.date == selected ? (d.isToday ? Tokens.fill : c.primarySoft) : c.surface,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: d.isToday && d.date != selected ? c.primary : Colors.transparent, width: 1.5),
+                  border: Border.all(
+                    color: d.date == selected && !d.isToday ? c.primary : (d.isToday && d.date != selected ? c.primary.withValues(alpha: 0.6) : Colors.transparent),
+                    width: d.date == selected && !d.isToday ? 2 : 1.5,
+                  ),
                 ),
                 child: Column(
                   children: [
@@ -160,7 +169,7 @@ class _WeekStrip extends StatelessWidget {
                       Fmt.weekdayTiny(Day.date(d.date)),
                       maxLines: 1,
                       overflow: TextOverflow.clip,
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: d.date == selected ? Colors.white.withValues(alpha: 0.8) : c.muted),
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: d.date == selected && d.isToday ? Colors.white.withValues(alpha: 0.85) : (d.date == selected ? c.primary : c.muted)),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -168,11 +177,11 @@ class _WeekStrip extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
-                        color: d.date == selected ? (c.dark && !d.isToday ? c.bg : Colors.white) : c.text,
+                        color: d.date == selected && d.isToday ? Colors.white : (d.date == selected ? c.primary : c.text),
                       ),
                     ),
                     const SizedBox(height: 6),
-                    _DayMark(d: d, onDark: d.date == selected),
+                    _DayMark(d: d, onDark: d.date == selected && d.isToday),
                   ],
                 ),
               ),
@@ -191,16 +200,20 @@ class _DayMark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.c;
-    if (d.log != null) {
+    if (d.skip != null && d.log == null) {
+      return Icon(Icons.remove_circle_rounded, size: 14, color: onDark ? Colors.white70 : c.faint);
+    }
+    if (d.log != null || d.done) {
       return Icon(CupertinoIcons.checkmark_circle_fill, size: 14, color: onDark ? Tokens.glow : c.success);
     }
     if (d.planned != null) {
+      // Missed sessions aren't failures: they're still to do this week.
       return Container(
         width: 8,
         height: 8,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: d.missed ? (onDark ? Colors.white38 : c.line) : null,
+          color: d.missed ? c.warn : null,
           border: d.missed ? null : Border.all(color: onDark ? Colors.white : c.primary, width: 1.8),
         ),
       );
@@ -216,6 +229,14 @@ class _DayMark extends StatelessWidget {
   }
 }
 
+void _start(BuildContext context, ProgramDay day) {
+  final store = context.store;
+  if (store.draft == null) store.startDraft(WorkoutDraft.fromDay(day, store.s.logs));
+  WorkoutScreen.open(context);
+}
+
+/// The big card under the week strip. Training days are flexible: a session
+/// that wasn't done on its day stays "up next" until it's done.
 class _SessionCard extends StatelessWidget {
   const _SessionCard({required this.plan});
   final DayPlan plan;
@@ -224,93 +245,144 @@ class _SessionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final store = context.store;
     final s = store.s;
-    final t0 = s.trainee;
-    final day = plan.planned;
-    final wk = programWeek(t0, plan.date);
-    final eyebrow = [
-      Fmt.relativeDay(plan.date),
-      if (wk != null && t0.program != null) t('today.weekOf', {'n': wk, 'total': t0.program!.weeks}),
-    ].join(' · ');
-
-    if (t0.program == null) {
+    final tr = s.trainee;
+    if (tr.program == null) {
       return AppCard(
         child: EmptyState(icon: CupertinoIcons.hammer, title: t('today.noProgram.title'), body: t('today.noProgram.body', {'name': s.coach.firstName})),
       );
     }
+    final wk = programWeek(tr, plan.date);
+    final weekLabel = wk == null ? null : t('today.weekOf', {'n': wk, 'total': tr.program!.weeks});
 
-    // Rest day.
-    if (day == null) {
-      final next = nextSession(s);
-      return AppCard(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(color: context.c.tint, borderRadius: BorderRadius.circular(16)),
-              child: Icon(CupertinoIcons.moon_stars_fill, color: context.c.primary, size: 26),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Eyebrow(eyebrow),
-                  const SizedBox(height: 4),
-                  Text(t('today.rest.title'), style: context.text.titleLarge),
-                  const SizedBox(height: 4),
-                  Text(
-                    next == null ? t('today.rest.body') : t('today.rest.next', {'day': next.day.name, 'when': Fmt.relativeDay(next.date)}),
-                    style: context.text.bodyMedium?.copyWith(color: context.c.muted),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+    // Another day picked in the strip.
+    if (!plan.isToday) {
+      final day = plan.planned;
+      if (plan.log != null) return _LogCard(log: plan.log!);
+      if (day == null) {
+        return _Note(icon: Sym.rest, tone: Tone.indigo, eyebrow: Fmt.relativeDay(plan.date), title: t('today.rest.title'), body: t('today.rest.body'));
+      }
+      if (plan.skip != null) {
+        final k = plan.skip!;
+        return _Note(
+          icon: Sym.skip,
+          tone: Tone.orange,
+          eyebrow: Fmt.relativeDay(plan.date),
+          title: day.name,
+          body: [skipLabel(k), if (k.note != null && k.note!.isNotEmpty) '“${k.note}”'].join('\n'),
+          action: t('skip.undo'),
+          actionIcon: CupertinoIcons.arrow_uturn_left,
+          onAction: () => store.unskip(k.id),
+        );
+      }
+      if (plan.doneOn != null) {
+        return _Note(
+          icon: Sym.done,
+          tone: Tone.green,
+          eyebrow: Fmt.relativeDay(plan.date),
+          title: day.name,
+          body: t('today.movedDone', {'day': Fmt.weekdayShort(Day.date(plan.doneOn!))}),
+        );
+      }
+      if (plan.isPast) {
+        return _Hero(
+          day: day,
+          eyebrow: t('today.catchUp', {'day': Fmt.weekdayShort(Day.date(plan.date))}),
+          action: t('today.doNow'),
+          onAction: () => _start(context, day),
+          onSkip: store.draft != null ? null : () => SkipSheet.open(context, day: day, plannedFor: plan.date, canMove: false),
+          skipLabel: t('skip.skip'),
+        );
+      }
+      return _Hero(
+        day: day,
+        eyebrow: [Fmt.relativeDay(plan.date), ?weekLabel].join(' · '),
+        action: t('today.preview'),
+        icon: CupertinoIcons.eye,
+        onAction: () => DayScreen.open(context, day, date: plan.date),
       );
     }
 
-    final log = plan.log;
-    final draft = store.draft;
-    final mins = estimateMinutes(day);
-    final sets = day.exercises.fold(0, (a, e) => a + e.sets);
-    final canStart = plan.isToday || plan.missed;
+    // Today.
+    final todayLog = s.logs.where((l) => l.date == Day.today).lastOrNull;
+    if (todayLog != null) return _LogCard(log: todayLog);
+    final next = upNext(s);
+    if (next == null) return _Note(icon: Sym.trophy, tone: Tone.gold, eyebrow: weekLabel ?? '', title: t('today.weekDone'), body: t('today.weekDoneBody'));
+    final due = next.plannedFor.compareTo(Day.today) <= 0;
+    final resume = store.draft != null;
+    if (due && store.skipped.contains(Day.today)) {
+      return _Note(
+        icon: Sym.calendar,
+        tone: Tone.blue,
+        eyebrow: t('date.today'),
+        title: t('today.skipped'),
+        body: t('today.skippedBody', {'day': next.day.name}),
+        action: t('today.trainAnyway'),
+        onAction: store.undoSkip,
+      );
+    }
+    if (due) {
+      return _Hero(
+        day: next.day,
+        eyebrow: next.overdue ? t('today.catchUp', {'day': Fmt.weekdayShort(Day.date(next.plannedFor))}) : [t('date.today'), ?weekLabel].join(' · '),
+        action: resume ? t('today.resume') : t('today.start'),
+        onAction: () => _start(context, next.day),
+        onSkip: resume ? null : () => SkipSheet.open(context, day: next.day, plannedFor: next.plannedFor),
+      );
+    }
+    return _Note(
+      icon: Sym.rest,
+      tone: Tone.indigo,
+      eyebrow: [t('date.today'), ?weekLabel].join(' · '),
+      title: t('today.rest.title'),
+      body: t('today.rest.next', {'day': next.day.name, 'when': Fmt.relativeDay(next.plannedFor)}),
+      action: t('today.trainInstead', {'day': next.day.name}),
+      onAction: () => _start(context, next.day),
+    );
+  }
+}
 
+/// A session to do (gradient card).
+class _Hero extends StatelessWidget {
+  const _Hero({required this.day, required this.eyebrow, required this.action, required this.onAction, this.icon = CupertinoIcons.play_fill, this.onSkip, this.skipLabel});
+  final ProgramDay day;
+  final String eyebrow, action;
+  final IconData icon;
+  final VoidCallback onAction;
+  final VoidCallback? onSkip;
+
+  /// Label for the skip link ("Can't make it?" by default).
+  final String? skipLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final sets = day.exercises.fold(0, (a, e) => a + e.sets);
     return AppCard(
-      gradient: log == null ? Tokens.brandGradient : null,
+      gradient: Tokens.brandGradient,
       padding: EdgeInsets.zero,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(Tokens.r),
         child: Stack(
           children: [
-            if (log == null)
-              Positioned(
-                right: -30,
-                top: -10,
-                child: Opacity(
-                  opacity: 0.16,
-                  child: SizedBox(width: 200, child: Barbell(plates: platesFor(4), loaded: 4, height: 110, onDark: true)),
-                ),
+            Positioned(
+              right: -30,
+              top: -10,
+              child: Opacity(
+                opacity: 0.16,
+                child: SizedBox(width: 200, child: Barbell(plates: platesFor(4), loaded: 4, height: 110, onDark: true)),
               ),
+            ),
             Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Eyebrow(
-                    log != null ? t('today.done') : (plan.missed ? t('today.missed') : eyebrow),
-                    color: log == null ? Colors.white.withValues(alpha: 0.85) : context.c.success,
-                  ),
+                  Eyebrow(eyebrow, color: Colors.white.withValues(alpha: 0.85)),
                   const SizedBox(height: 6),
-                  Text(day.name, style: context.text.headlineMedium?.copyWith(color: log == null ? Colors.white : null)),
+                  Text(day.name, style: context.text.headlineMedium?.copyWith(color: Colors.white)),
                   const SizedBox(height: 6),
                   Text(
-                    log != null
-                        ? t('today.loggedSub', {'min': Fmt.minutes(log.durationMin), 'rpe': log.rpe, 'sets': log.setCount})
-                        : t('today.sessionSub', {'n': day.exercises.length, 'sets': sets, 'min': mins}),
-                    style: TextStyle(color: log == null ? Colors.white.withValues(alpha: 0.85) : context.c.muted, fontSize: 15),
+                    t('today.sessionSub', {'n': day.exercises.length, 'sets': sets, 'min': estimateMinutes(day)}),
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 15),
                   ),
                   const SizedBox(height: 14),
                   for (final e in day.exercises.take(4))
@@ -321,7 +393,7 @@ class _SessionCard extends StatelessWidget {
                           Container(
                             width: 6,
                             height: 6,
-                            decoration: BoxDecoration(shape: BoxShape.circle, color: log == null ? Tokens.glow : context.c.primary),
+                            decoration: const BoxDecoration(shape: BoxShape.circle, color: Tokens.glow),
                           ),
                           const SizedBox(width: 10),
                           Expanded(
@@ -329,40 +401,27 @@ class _SessionCard extends StatelessWidget {
                               e.name,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(color: log == null ? Colors.white : context.c.text, fontSize: 15, fontWeight: FontWeight.w500),
+                              style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500),
                             ),
                           ),
                           Text(
-                            ltr('${e.sets} × ${e.reps}'),
-                            style: TextStyle(color: log == null ? Colors.white.withValues(alpha: 0.75) : context.c.muted, fontSize: 14),
+                            isCardioExercise(e.name) ? ltr(e.reps) : ltr('${e.sets} × ${e.reps}'),
+                            style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 14),
                           ),
                         ],
                       ),
                     ),
                   if (day.exercises.length > 4)
-                    Text(
-                      tn('today.more', day.exercises.length - 4),
-                      style: TextStyle(color: log == null ? Colors.white.withValues(alpha: 0.7) : context.c.muted, fontSize: 13),
-                    ),
+                    Text(tn('today.more', day.exercises.length - 4), style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13)),
                   const SizedBox(height: 16),
-                  if (log != null)
-                    SecondaryButton(t('today.viewLog'), icon: CupertinoIcons.doc_text, onPressed: () => LogSheet.open(context, log))
-                  else if (canStart)
-                    PrimaryButton(
-                      draft != null ? t('today.resume') : t('today.start'),
-                      light: true,
-                      icon: CupertinoIcons.play_fill,
-                      onPressed: () {
-                        if (draft == null) store.startDraft(WorkoutDraft.fromDay(day, s.logs));
-                        WorkoutScreen.open(context);
-                      },
-                    )
-                  else
-                    PrimaryButton(
-                      t('today.preview'),
-                      light: true,
-                      icon: CupertinoIcons.eye,
-                      onPressed: () => DayScreen.open(context, day, date: plan.date),
+                  PrimaryButton(action, light: true, icon: icon, onPressed: onAction),
+                  if (onSkip != null)
+                    Center(
+                      child: TextButton(
+                        onPressed: onSkip,
+                        style: TextButton.styleFrom(foregroundColor: Colors.white),
+                        child: Text(skipLabel ?? t('today.cantMake'), style: const TextStyle(fontWeight: FontWeight.w600)),
+                      ),
                     ),
                 ],
               ),
@@ -372,6 +431,97 @@ class _SessionCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A session already logged.
+class _LogCard extends StatelessWidget {
+  const _LogCard({required this.log});
+  final WorkoutLog log;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Eyebrow('${t('today.done')} · ${Fmt.relativeDay(log.date)}', color: c.success),
+          const SizedBox(height: 6),
+          Text(log.dayName, style: context.text.headlineMedium),
+          const SizedBox(height: 6),
+          Text(
+            t('today.loggedSub', {'min': Fmt.minutes(log.durationMin), 'rpe': log.rpe, 'sets': log.setCount}),
+            style: TextStyle(color: c.muted, fontSize: 15),
+          ),
+          const SizedBox(height: 12),
+          for (final e in log.entries.take(4))
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                children: [
+                  Icon(CupertinoIcons.checkmark_alt, size: 15, color: c.success),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(e.exerciseName, maxLines: 1, overflow: TextOverflow.ellipsis, style: context.text.bodyLarge),
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 8),
+          SecondaryButton(t('today.viewLog'), icon: CupertinoIcons.doc_text, onPressed: () => LogSheet.open(context, log)),
+        ],
+      ),
+    );
+  }
+}
+
+/// Rest day, week complete, "not today" and other quiet states.
+class _Note extends StatelessWidget {
+  const _Note({
+    required this.icon,
+    required this.tone,
+    required this.eyebrow,
+    required this.title,
+    required this.body,
+    this.action,
+    this.onAction,
+    this.actionIcon = CupertinoIcons.play_fill,
+  });
+  final IconData icon;
+  final Tone tone;
+  final IconData actionIcon;
+  final String eyebrow, title, body;
+  final String? action;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) => AppCard(
+    padding: const EdgeInsets.all(20),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Glyph(icon, tone: tone, size: 52),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (eyebrow.isNotEmpty) Eyebrow(eyebrow),
+                  const SizedBox(height: 4),
+                  Text(title, style: context.text.titleLarge),
+                  const SizedBox(height: 4),
+                  Text(body, style: context.text.bodyMedium?.copyWith(color: context.c.muted)),
+                ],
+              ),
+            ),
+          ],
+        ),
+        if (action != null) ...[const SizedBox(height: 14), SecondaryButton(action!, icon: actionIcon, onPressed: onAction)],
+      ],
+    ),
+  );
 }
 
 class _WeekBarbell extends StatelessWidget {
@@ -392,14 +542,8 @@ class _WeekBarbell extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(t('today.week.title'), style: context.text.titleMedium),
-                    const SizedBox(height: 2),
-                    Text(tn('today.week.sub', done, {'total': planned}), style: context.text.bodySmall),
-                  ],
-                ),
+                // The section header above already says "This week".
+                child: Text(tn('today.week.sub', done, {'total': planned}), style: context.text.titleMedium),
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -431,9 +575,9 @@ class _WeekBarbell extends StatelessWidget {
 }
 
 class _Task extends StatelessWidget {
-  const _Task({required this.icon, required this.color, required this.title, required this.body, this.action, this.onTap});
+  const _Task({required this.icon, required this.tone, required this.title, required this.body, this.action, this.onTap});
   final IconData icon;
-  final Color color;
+  final Tone tone;
   final String title, body;
   final String? action;
   final VoidCallback? onTap;
@@ -445,12 +589,7 @@ class _Task extends StatelessWidget {
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
-          child: Icon(icon, color: color, size: 20),
-        ),
+        Glyph(icon, tone: tone, size: 42),
         const SizedBox(width: 14),
         Expanded(
           child: Column(
@@ -458,8 +597,10 @@ class _Task extends StatelessWidget {
             children: [
               Text(title, style: context.text.titleSmall),
               const SizedBox(height: 3),
-              Text(
+              // Often the coach's own words (a request note, a message).
+              FreeText(
                 body,
+                alignToScreen: true,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: context.text.bodyMedium?.copyWith(color: context.c.muted),

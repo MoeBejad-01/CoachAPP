@@ -12,15 +12,18 @@ import '../data/schedule.dart';
 import '../data/store.dart';
 import '../widgets/anatomy_shapes.dart';
 import '../widgets/charts.dart';
+import '../widgets/glyph.dart';
 import '../widgets/muscle_map.dart';
 import '../widgets/ui.dart';
+import 'cardio.dart';
 import 'checkin.dart';
+import 'habits.dart';
 import 'inbody.dart';
 import 'shell.dart';
 import 'train.dart';
 import 'workout.dart';
 
-enum _Section { strength, body, checkins }
+enum _Section { strength, cardio, body, habits }
 
 class ProgressScreen extends StatefulWidget {
   const ProgressScreen({super.key});
@@ -66,8 +69,15 @@ class _ProgressScreenState extends State<ProgressScreen> {
                 key: ValueKey(_section),
                 child: switch (_section) {
                   _Section.strength => _Strength(s: s),
+                  _Section.cardio => _Cardio(s: s),
                   _Section.body => _Body(s: s),
-                  _Section.checkins => _CheckIns(s: s),
+                  _Section.habits => Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _Habits(s: s),
+                      _CheckIns(s: s),
+                    ],
+                  ),
                 },
               ),
             ),
@@ -659,7 +669,7 @@ class _CheckIns extends StatelessWidget {
                       Pill(t('checkins.scorePill', {'label': t('checkin.soreness'), 'v': x.soreness})),
                     ],
                   ),
-                  if (x.comment.isNotEmpty) ...[const SizedBox(height: 8), Text('“${x.comment}”', style: context.text.bodyMedium?.copyWith(color: c.text2))],
+                  if (x.comment.isNotEmpty) ...[const SizedBox(height: 8), FreeText('“${x.comment}”', style: context.text.bodyMedium?.copyWith(color: c.text2))],
                 ],
               ),
             ),
@@ -718,4 +728,145 @@ class _Dots extends StatelessWidget {
       ],
     ),
   );
+}
+
+// ---------- Cardio ----------
+
+class _Cardio extends StatelessWidget {
+  const _Cardio({required this.s});
+  final Snapshot s;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    final weeks = cardioByWeek(s);
+    final inWorkouts = [
+      for (final l in s.logs)
+        for (final e in l.entries)
+          if (e.cardio != null) (date: l.date, name: e.exerciseName, detail: e.cardio!),
+    ];
+    final items = [
+      for (final x in s.cardio) (date: x.date, icon: Sym.activity[x.activity] ?? Sym.cardio, name: t('cardio.act.${x.activity}'), detail: x.detail),
+      for (final x in inWorkouts) (date: x.date, icon: Sym.strength, name: x.name, detail: x.detail),
+    ]..sort((a, b) => b.date.compareTo(a.date));
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 18),
+        const CardioWeekCard(showList: false),
+        SectionHeader(t('cardio.byWeek')),
+        AppCard(
+          child: BarChart(
+            color: c.success,
+            points: [for (final w in weeks) ChartPoint(w.minutes, Fmt.dayMonth(Day.date(w.weekStart)).split(' ').first)],
+            format: (v) => Fmt.minutes(v),
+          ),
+        ),
+        SectionHeader(t('cardio.history')),
+        if (items.isEmpty)
+          AppCard(
+            child: EmptyState(icon: CupertinoIcons.heart, title: t('cardio.none'), action: t('cardio.log'), onAction: () => CardioSheet.open(context)),
+          )
+        else
+          GroupCard(
+            children: [
+              for (final x in items.take(12))
+                RowTile(icon: x.icon, iconColor: Tone.green.color, title: x.name, subtitle: '${Fmt.relativeDay(x.date)} · ${cardioLine(x.detail)}'),
+            ],
+          ),
+      ],
+    );
+  }
+}
+
+// ---------- Daily habits ----------
+
+class _Habits extends StatelessWidget {
+  const _Habits({required this.s});
+  final Snapshot s;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    final days = [for (var i = 6; i >= 0; i--) Day.add(Day.today, -i)];
+    String label(String d) => Fmt.weekdayTiny(Day.date(d));
+    final logs = [for (final d in days) s.dayLog(d)];
+    final any = logs.any((d) => d.sleepH != null || d.waterMl != null || d.steps != null || d.meals.isNotEmpty || d.stress != null);
+    if (!any) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 18),
+        child: AppCard(
+          child: EmptyState(icon: CupertinoIcons.drop, title: t('habit.empty.title'), body: t('habit.empty.body')),
+        ),
+      );
+    }
+    Widget chart(String title, IconData icon, Tone tone, double Function(DailyLog) pick, String Function(double) fmt) => Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: AppCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Glyph(icon, tone: tone, size: 28),
+                const SizedBox(width: 10),
+                Text(title, style: context.text.titleSmall),
+              ],
+            ),
+            const SizedBox(height: 8),
+            BarChart(height: 120, color: tone.color, points: [for (var i = 0; i < 7; i++) ChartPoint(pick(logs[i]), label(days[i]))], format: fmt),
+          ],
+        ),
+      ),
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SectionHeader(t('habit.week')),
+        chart(t('habit.sleep'), Sym.sleep, Tone.indigo, (d) => d.sleepH ?? 0, (v) => t('unit.hValue', {'v': Fmt.number(v)})),
+        chart(t('habit.water'), Sym.water, Tone.sky, (d) => (d.waterMl ?? 0) / 1000, (v) => t('habit.waterValue', {'v': Fmt.number(v)})),
+        chart(t('habit.steps'), Sym.steps, Tone.teal, (d) => d.steps ?? 0, (v) => Fmt.number(v)),
+        AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(t('habit.moods'), style: context.text.titleSmall),
+              const SizedBox(height: 10),
+              Directionality(
+                textDirection: TextDirection.ltr,
+                child: Row(
+                  children: [
+                    for (var i = 0; i < 7; i++)
+                      Expanded(
+                        child: Column(
+                          children: [
+                            SizedBox(
+                              height: 24,
+                              child: Center(
+                                child: logs[i].stress == null ? Text('·', style: TextStyle(color: c.faint)) : stressIcon(logs[i].stress!, size: 22),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            SizedBox(
+                              height: 20,
+                              child: Center(
+                                child: logs[i].soreness == null ? Text('·', style: TextStyle(color: c.faint)) : sorenessBars(logs[i].soreness!, height: 16),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(label(days[i]), style: TextStyle(fontSize: 10.5, color: c.faint)),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(t('habit.moodsKey'), style: context.text.bodySmall),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 }

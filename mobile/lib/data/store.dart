@@ -74,6 +74,8 @@ class TraineeStore extends ChangeNotifier with WidgetsBindingObserver {
     if (out?['ops'] is List) {
       _outbox.addAll((out!['ops'] as List).map((e) => AppOp.fromJson((e as Map).cast<String, dynamic>())));
     }
+    final sk = await _read('skipped.json');
+    if (sk?['days'] is List) skipped.addAll((sk!['days'] as List).whereType<String>().where((d) => d.compareTo(Day.add(Day.today, -14)) >= 0));
     final d = await _read('draft.json');
     try {
       draft = d == null ? null : WorkoutDraft.fromJson(d);
@@ -166,7 +168,8 @@ class TraineeStore extends ChangeNotifier with WidgetsBindingObserver {
     draft = null;
     this.notice = notice;
     phase = Phase.signedOut;
-    for (final f in ['session.json', 'snapshot.json', 'outbox.json', 'draft.json']) {
+    skipped.clear();
+    for (final f in ['session.json', 'snapshot.json', 'outbox.json', 'draft.json', 'skipped.json']) {
       await _write(f, null);
     }
     notifyListeners();
@@ -282,6 +285,17 @@ class TraineeStore extends ChangeNotifier with WidgetsBindingObserver {
         );
       case 'seen':
         return s.copyWith(messages: [for (final m in s.messages) m.fromCoach && m.seen == false ? m.copyWith(seen: true) : m]);
+      case 'daily':
+        final d = DailyLog.fromJson((b['log'] as Map).cast<String, dynamic>());
+        return s.copyWith(dailyLogs: [...s.dailyLogs.where((x) => x.date != d.date), d]);
+      case 'cardio':
+        final c = CardioSession.fromJson((b['session'] as Map).cast<String, dynamic>());
+        return s.copyWith(cardio: [...s.cardio.where((x) => x.id != c.id), c]..sort((a, d) => a.date.compareTo(d.date)));
+      case 'skip':
+        final k = SkippedSession.fromJson((b['skip'] as Map).cast<String, dynamic>());
+        return s.copyWith(skips: [...s.skips.where((x) => x.id != k.id && !(x.weekStart == k.weekStart && x.dayId == k.dayId)), k]);
+      case 'unskip':
+        return s.copyWith(skips: s.skips.where((x) => x.id != b['skipId']).toList());
       case 'inbody':
         final scan = InBodyScan.fromJson((b['scan'] as Map).cast<String, dynamic>());
         if (s.inbody.any((x) => x.id == scan.id)) return s;
@@ -330,6 +344,52 @@ class TraineeStore extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void addInBody(InBodyScan scan) => _enqueue(AppOp('inbody', {'scan': scan.toJson()}));
+
+  /// Changes one day's habits (sleep, water, steps, stress, soreness, food).
+  /// Each op carries the whole day, so only the latest unsent one is kept.
+  void updateDay(DailyLog Function(DailyLog) change, {String? date}) {
+    final day = date ?? Day.today;
+    final next = change(s.dayLog(day));
+    _outbox.removeWhere((o) => o.kind == 'daily' && (o.body['log'] as Map)['date'] == day && !_flushing);
+    _enqueue(AppOp('daily', {'log': next.toJson()}));
+  }
+
+  void logCardio(CardioSession c) => _enqueue(AppOp('cardio', {'session': c.toJson()}));
+
+  /// Skips a planned session for this week; the coach sees the reason.
+  SkippedSession skipSession({required ProgramDay day, required String plannedFor, required String reason, String? note}) {
+    final k = SkippedSession(
+      id: newId('sk'),
+      weekStart: Day.startOfWeek(plannedFor),
+      date: plannedFor,
+      dayId: day.id,
+      dayName: day.name,
+      reason: reason,
+      note: note,
+      at: Stamp.now(),
+    );
+    _enqueue(AppOp('skip', {'skip': k.toJson()}));
+    return k;
+  }
+
+  void unskip(String id) => _enqueue(AppOp('unskip', {'skipId': id}));
+
+  // ---------- Flexible days ----------
+
+  /// Days the trainee said "not today" for a planned session (kept on this phone only).
+  final Set<String> skipped = {};
+
+  void skipToday() {
+    skipped.add(Day.today);
+    unawaited(_write('skipped.json', {'days': skipped.toList()}));
+    notifyListeners();
+  }
+
+  void undoSkip() {
+    skipped.remove(Day.today);
+    unawaited(_write('skipped.json', {'days': skipped.toList()}));
+    notifyListeners();
+  }
 
   // ---------- Workout in progress ----------
 

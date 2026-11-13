@@ -32,6 +32,8 @@ class MeScreen extends StatelessWidget {
         final m = tr.membership;
         return TabPage(
           title: t('tab.me'),
+          actions: false,
+          leading: const BackButton(),
           children: [
             const SizedBox(height: 8),
             AppCard(

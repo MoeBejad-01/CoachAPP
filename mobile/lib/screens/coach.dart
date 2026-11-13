@@ -287,7 +287,7 @@ class _Bubble extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(m.text, style: TextStyle(fontSize: 16, height: 1.35, color: mine ? Colors.white : c.text)),
+                  FreeText(m.text, style: TextStyle(fontSize: 16, height: 1.35, color: mine ? Colors.white : c.text)),
                   const SizedBox(height: 3),
                   Text(Fmt.time(Stamp.parse(m.at)), style: TextStyle(fontSize: 11, color: mine ? Colors.white70 : c.faint)),
                 ],
@@ -335,7 +335,7 @@ class _Notes extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(n.text, style: context.text.bodyMedium),
+                  FreeText(n.text, style: context.text.bodyMedium),
                   const SizedBox(height: 6),
                   Text(Fmt.relativeDay(Day.iso(Stamp.parse(n.at))), style: context.text.bodySmall),
                 ],

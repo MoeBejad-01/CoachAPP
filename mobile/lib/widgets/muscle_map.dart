@@ -9,8 +9,9 @@ import 'package:path_drawing/path_drawing.dart';
 import '../app/theme.dart';
 import 'anatomy_shapes.dart';
 
-class _Shapes {
-  _Shapes._() {
+/// Parsed body and muscle outlines, shared by the body map widgets.
+class AnatomyPaths {
+  AnatomyPaths._() {
     // Mirror across x = 100 (the site's matrix(-1 0 0 1 200 0)), column-major.
     final m = Float64List.fromList([-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 200, 0, 0, 1]);
     final half = parseSvgPathData(anatomySilhouette);
@@ -33,7 +34,7 @@ class _Shapes {
       };
     }
   }
-  static final instance = _Shapes._();
+  static final instance = AnatomyPaths._();
   late final Path body;
   final muscles = <BodyView, Map<MuscleGroup, Path>>{};
 }
@@ -62,7 +63,7 @@ class MuscleMap extends StatelessWidget {
                 : (d) {
                     final p = _toViewBox(d.localPosition, size);
                     MuscleGroup? hit;
-                    _Shapes.instance.muscles[view]!.forEach((g, path) {
+                    AnatomyPaths.instance.muscles[view]!.forEach((g, path) {
                       if (path.contains(p)) hit = g;
                     });
                     onSelect!(hit == selected ? null : hit);
@@ -91,7 +92,8 @@ class MuscleMap extends StatelessWidget {
     );
   }
 
-  static (double, Offset) _fit(Size size) {
+  /// Scale and offset that fit the body map into [size].
+  static (double, Offset) fit(Size size) {
     const vb = anatomyViewBox;
     final s = (size.width / vb.width) < (size.height / vb.height) ? size.width / vb.width : size.height / vb.height;
     final dx = (size.width - vb.width * s) / 2 - vb.left * s;
@@ -100,7 +102,7 @@ class MuscleMap extends StatelessWidget {
   }
 
   static Offset _toViewBox(Offset p, Size size) {
-    final (s, o) = _fit(size);
+    final (s, o) = fit(size);
     return (p - o) / s;
   }
 }
@@ -124,12 +126,12 @@ class _MapPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final (s, o) = MuscleMap._fit(size);
+    final (s, o) = MuscleMap.fit(size);
     canvas.save();
     canvas.translate(o.dx, o.dy);
     canvas.scale(s);
-    canvas.drawPath(_Shapes.instance.body, Paint()..color = body);
-    _Shapes.instance.muscles[view]!.forEach((g, path) {
+    canvas.drawPath(AnatomyPaths.instance.body, Paint()..color = body);
+    AnatomyPaths.instance.muscles[view]!.forEach((g, path) {
       final v = ((levels[g] ?? 0) * t).clamp(0.0, 1.0);
       final color = Color.lerp(muscle, hot, v == 0 ? 0 : 0.25 + v * 0.75)!;
       canvas.drawPath(path, Paint()..color = color);

@@ -110,7 +110,10 @@ class SectionHeader extends StatelessWidget {
         Expanded(
           child: Text(title, style: context.text.titleLarge, semanticsLabel: title),
         ),
-        if (action != null)
+        // A caption that can't be tapped reads as a quiet note, not a link.
+        if (action != null && onAction == null)
+          Text(action!, style: TextStyle(color: context.c.muted, fontSize: 14))
+        else if (action != null)
           CupertinoButton(
             padding: EdgeInsets.zero,
             minimumSize: const Size(32, 32),
@@ -427,7 +430,7 @@ class RowTile extends StatelessWidget {
                     title,
                     style: TextStyle(fontSize: 16, color: fg, fontWeight: FontWeight.w500),
                   ),
-                  if (subtitle != null) ...[const SizedBox(height: 2), Text(subtitle!, style: context.text.bodySmall)],
+                  if (subtitle != null) ...[const SizedBox(height: 2), FreeText(subtitle!, style: context.text.bodySmall, alignToScreen: true)],
                 ],
               ),
             ),
@@ -473,6 +476,8 @@ class GroupCard extends StatelessWidget {
 Future<T?> showAppSheet<T>(BuildContext context, WidgetBuilder builder) => showModalBottomSheet<T>(
   context: context,
   isScrollControlled: true,
+  // Above the tab bar, not inside the tab.
+  useRootNavigator: true,
   useSafeArea: true,
   builder: (c) => Padding(
     padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(c).bottom),
@@ -484,4 +489,44 @@ void toast(BuildContext context, String text) {
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
     ..showSnackBar(SnackBar(content: Text(text), duration: const Duration(seconds: 3)));
+}
+
+/// Text someone typed (a message, a coach's note). It's laid out in its own
+/// language's direction, so an English "Great job." in the Arabic app keeps
+/// its full stop at the end, and it lines up the way that language reads
+/// (like a chat app). [alignToScreen] lines it up with the screen instead,
+/// for short lines under a heading.
+class FreeText extends StatelessWidget {
+  const FreeText(this.text, {super.key, this.style, this.maxLines, this.overflow, this.alignToScreen = false});
+  final String text;
+  final TextStyle? style;
+  final int? maxLines;
+  final TextOverflow? overflow;
+  final bool alignToScreen;
+
+  static final _rtl = RegExp('[֐-ࣿיִ-﷿ﹰ-﻿]');
+  static final _ltr = RegExp('[A-Za-zÀ-ɏ]');
+
+  /// The direction of the first letter that has one (digits and symbols don't).
+  static TextDirection? directionOf(String s) {
+    for (final ch in s.runes) {
+      final c = String.fromCharCode(ch);
+      if (_rtl.hasMatch(c)) return TextDirection.rtl;
+      if (_ltr.hasMatch(c)) return TextDirection.ltr;
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ambient = Directionality.of(context);
+    return Text(
+      text,
+      style: style,
+      maxLines: maxLines,
+      overflow: overflow,
+      textDirection: directionOf(text) ?? ambient,
+      textAlign: !alignToScreen ? TextAlign.start : (ambient == TextDirection.rtl ? TextAlign.right : TextAlign.left),
+    );
+  }
 }

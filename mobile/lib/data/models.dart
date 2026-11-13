@@ -15,9 +15,21 @@ List<T> _list<T>(Object? v, T Function(Json) f) => v is List ? v.whereType<Map>(
 Json _clean(Json j) => j..removeWhere((_, v) => v == null);
 
 class Exercise {
-  Exercise({required this.id, required this.name, required this.sets, required this.reps, required this.intensity, required this.rest, required this.cue});
+  Exercise({
+    required this.id,
+    required this.name,
+    required this.sets,
+    required this.reps,
+    required this.intensity,
+    required this.rest,
+    required this.cue,
+    this.video,
+  });
   final String id, name, reps, intensity, rest, cue;
   final int sets;
+
+  /// Technique video link set by the coach (see also exercise_videos.dart).
+  final String? video;
 
   factory Exercise.fromJson(Json j) => Exercise(
     id: _s(j['id']),
@@ -27,6 +39,7 @@ class Exercise {
     intensity: _s(j['intensity']),
     rest: _s(j['rest']),
     cue: _s(j['cue']),
+    video: (j['video'] as String?)?.trim().isEmpty ?? true ? null : (j['video'] as String).trim(),
   );
 }
 
@@ -167,10 +180,22 @@ class LoggedSet {
   Json toJson() => {'weight': weight, 'reps': reps};
 }
 
+/// Time and distance for cardio, inside a workout or on its own.
+class CardioDetail {
+  const CardioDetail({required this.minutes, this.distanceKm, this.kcal, this.avgHr});
+  final double minutes;
+  final double? distanceKm, kcal, avgHr;
+
+  factory CardioDetail.fromJson(Json j) =>
+      CardioDetail(minutes: _d(j['minutes']), distanceKm: _dn(j['distanceKm']), kcal: _dn(j['kcal']), avgHr: _dn(j['avgHr']));
+  Json toJson() => _clean({'minutes': minutes, 'distanceKm': distanceKm, 'kcal': kcal, 'avgHr': avgHr});
+}
+
 class LogEntry {
-  LogEntry({required this.exerciseId, required this.exerciseName, required this.sets, this.note, this.pain});
+  LogEntry({required this.exerciseId, required this.exerciseName, required this.sets, this.cardio, this.note, this.pain});
   final String exerciseId, exerciseName;
   final List<LoggedSet> sets;
+  final CardioDetail? cardio;
   final String? note;
   final bool? pain;
 
@@ -178,6 +203,7 @@ class LogEntry {
     exerciseId: _s(j['exerciseId']),
     exerciseName: _s(j['exerciseName']),
     sets: _list(j['sets'], LoggedSet.fromJson),
+    cardio: j['cardio'] is Map ? CardioDetail.fromJson((j['cardio'] as Map).cast<String, dynamic>()) : null,
     note: j['note'] as String?,
     pain: j['pain'] as bool?,
   );
@@ -185,14 +211,18 @@ class LogEntry {
     'exerciseId': exerciseId,
     'exerciseName': exerciseName,
     'sets': sets.map((s) => s.toJson()).toList(),
+    'cardio': cardio?.toJson(),
     'note': (note?.trim().isEmpty ?? true) ? null : note!.trim(),
     'pain': pain == true ? true : null,
   });
 }
 
 class WorkoutLog {
-  WorkoutLog({required this.id, required this.date, required this.dayName, required this.durationMin, required this.rpe, required this.entries});
+  WorkoutLog({required this.id, required this.date, required this.dayName, required this.durationMin, required this.rpe, required this.entries, this.dayId});
   final String id, date, dayName;
+
+  /// The program day this was for; it may be done on another date (flexible days).
+  final String? dayId;
   final double durationMin, rpe;
   final List<LogEntry> entries;
 
@@ -206,11 +236,13 @@ class WorkoutLog {
     durationMin: _d(j['durationMin']),
     rpe: _d(j['rpe'], 8),
     entries: _list(j['entries'], LogEntry.fromJson),
+    dayId: j['dayId'] as String?,
   );
   Json toJson() => {
     'id': id,
     'date': date,
     'dayName': dayName,
+    'dayId': ?dayId,
     'durationMin': durationMin.round(),
     'rpe': rpe.round(),
     'entries': entries.map((e) => e.toJson()).toList(),
@@ -366,6 +398,131 @@ class InBodyRequest {
   Json toJson() => {'id': id, 'requestedAt': requestedAt, 'note': note, 'status': status};
 }
 
+const cardioActivities = ['walk', 'run', 'cycle', 'swim', 'row', 'elliptical', 'stairs', 'hiit', 'sport', 'other'];
+
+/// A cardio session logged on its own (a walk, a run, a class...).
+class CardioSession {
+  CardioSession({required this.id, required this.date, required this.activity, required this.detail, required this.effort, this.note});
+  final String id, date, activity;
+  final CardioDetail detail;
+
+  /// 1 easy, 2 moderate, 3 hard.
+  final int effort;
+  final String? note;
+
+  factory CardioSession.fromJson(Json j) => CardioSession(
+    id: _s(j['id']),
+    date: _s(j['date']),
+    activity: _s(j['activity'], 'other'),
+    detail: CardioDetail.fromJson(j),
+    effort: _i(j['effort'], 2),
+    note: j['note'] as String?,
+  );
+  Json toJson() => _clean({
+    'id': id,
+    'date': date,
+    'activity': activity,
+    ...detail.toJson(),
+    'effort': effort,
+    'note': (note?.trim().isEmpty ?? true) ? null : note!.trim(),
+  });
+}
+
+const skipReasons = ['sick', 'busy', 'travel', 'sore', 'motivation', 'other'];
+
+/// A planned session the trainee chose to skip, and why (the coach sees it).
+class SkippedSession {
+  SkippedSession({
+    required this.id,
+    required this.weekStart,
+    required this.date,
+    required this.dayId,
+    required this.dayName,
+    required this.reason,
+    required this.at,
+    this.note,
+  });
+  final String id, weekStart, date, dayId, dayName, reason, at;
+  final String? note;
+
+  factory SkippedSession.fromJson(Json j) => SkippedSession(
+    id: _s(j['id']),
+    weekStart: _s(j['weekStart']),
+    date: _s(j['date']),
+    dayId: _s(j['dayId']),
+    dayName: _s(j['dayName']),
+    reason: _s(j['reason'], 'other'),
+    at: _s(j['at']),
+    note: j['note'] as String?,
+  );
+  Json toJson() => _clean({
+    'id': id,
+    'weekStart': weekStart,
+    'date': date,
+    'dayId': dayId,
+    'dayName': dayName,
+    'reason': reason,
+    'at': at,
+    'note': (note?.trim().isEmpty ?? true) ? null : note!.trim(),
+  });
+}
+
+const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack'];
+
+class Meal {
+  Meal({required this.id, required this.type, required this.text, this.kcal, this.proteinG});
+  final String id, type, text;
+  final double? kcal, proteinG;
+
+  factory Meal.fromJson(Json j) => Meal(id: _s(j['id']), type: _s(j['type'], 'snack'), text: _s(j['text']), kcal: _dn(j['kcal']), proteinG: _dn(j['proteinG']));
+  Json toJson() => _clean({'id': id, 'type': type, 'text': text, 'kcal': kcal, 'proteinG': proteinG});
+}
+
+/// What the trainee tracks day to day (one per day): sleep, water, steps, stress, soreness, food.
+class DailyLog {
+  const DailyLog({required this.date, this.sleepH, this.waterMl, this.steps, this.stress, this.soreness, this.sorenessAreas = const [], this.meals = const []});
+  final String date;
+  final double? sleepH, waterMl, steps;
+  final int? stress, soreness;
+  final List<String> sorenessAreas;
+  final List<Meal> meals;
+
+  double get kcal => meals.fold(0.0, (a, m) => a + (m.kcal ?? 0));
+  double get protein => meals.fold(0.0, (a, m) => a + (m.proteinG ?? 0));
+
+  DailyLog copyWith({double? sleepH, double? waterMl, double? steps, int? stress, int? soreness, List<String>? sorenessAreas, List<Meal>? meals}) => DailyLog(
+    date: date,
+    sleepH: sleepH ?? this.sleepH,
+    waterMl: waterMl ?? this.waterMl,
+    steps: steps ?? this.steps,
+    stress: stress ?? this.stress,
+    soreness: soreness ?? this.soreness,
+    sorenessAreas: sorenessAreas ?? this.sorenessAreas,
+    meals: meals ?? this.meals,
+  );
+
+  factory DailyLog.fromJson(Json j) => DailyLog(
+    date: _s(j['date']),
+    sleepH: _dn(j['sleepH']),
+    waterMl: _dn(j['waterMl']),
+    steps: _dn(j['steps']),
+    stress: (j['stress'] as num?)?.round(),
+    soreness: (j['soreness'] as num?)?.round(),
+    sorenessAreas: (j['sorenessAreas'] as List?)?.whereType<String>().toList() ?? const [],
+    meals: _list(j['meals'], Meal.fromJson),
+  );
+  Json toJson() => _clean({
+    'date': date,
+    'sleepH': sleepH,
+    'waterMl': waterMl,
+    'steps': steps,
+    'stress': stress,
+    'soreness': soreness,
+    'sorenessAreas': sorenessAreas.isEmpty ? null : sorenessAreas,
+    'meals': meals.map((m) => m.toJson()).toList(),
+  });
+}
+
 class CoachInfo {
   CoachInfo({required this.name, required this.title, required this.businessName, required this.currency});
   final String name, title, businessName, currency;
@@ -392,6 +549,9 @@ class Snapshot {
     required this.sessions,
     required this.inbody,
     required this.inbodyRequests,
+    this.cardio = const [],
+    this.dailyLogs = const [],
+    this.skips = const [],
   });
 
   final int rev;
@@ -405,6 +565,11 @@ class Snapshot {
   final List<CoachSession> sessions;
   final List<InBodyScan> inbody;
   final List<InBodyRequest> inbodyRequests;
+  final List<CardioSession> cardio;
+  final List<DailyLog> dailyLogs;
+  final List<SkippedSession> skips;
+
+  DailyLog dayLog(String date) => dailyLogs.where((d) => d.date == date).firstOrNull ?? DailyLog(date: date);
 
   Snapshot copyWith({
     Trainee? trainee,
@@ -414,6 +579,9 @@ class Snapshot {
     List<Message>? messages,
     List<InBodyScan>? inbody,
     List<InBodyRequest>? inbodyRequests,
+    List<CardioSession>? cardio,
+    List<DailyLog>? dailyLogs,
+    List<SkippedSession>? skips,
   }) => Snapshot(
     rev: rev,
     coach: coach,
@@ -426,6 +594,9 @@ class Snapshot {
     sessions: sessions,
     inbody: inbody ?? this.inbody,
     inbodyRequests: inbodyRequests ?? this.inbodyRequests,
+    cardio: cardio ?? this.cardio,
+    dailyLogs: dailyLogs ?? this.dailyLogs,
+    skips: skips ?? this.skips,
   );
 
   factory Snapshot.fromJson(Json j) => Snapshot(
@@ -440,6 +611,9 @@ class Snapshot {
     sessions: _list(j['sessions'], CoachSession.fromJson)..sort((a, b) => a.start.compareTo(b.start)),
     inbody: _list(j['inbody'], InBodyScan.fromJson)..sort((a, b) => a.date.compareTo(b.date)),
     inbodyRequests: _list(j['inbodyRequests'], InBodyRequest.fromJson),
+    cardio: _list(j['cardio'], CardioSession.fromJson)..sort((a, b) => a.date.compareTo(b.date)),
+    dailyLogs: _list(j['dailyLogs'], DailyLog.fromJson),
+    skips: _list(j['skips'], SkippedSession.fromJson),
   );
 
   Json toJson() => {
@@ -455,6 +629,9 @@ class Snapshot {
     'sessions': sessions.map((e) => e.toJson()).toList(),
     'inbody': inbody.map((e) => e.toJson(withFile: false)).toList(),
     'inbodyRequests': inbodyRequests.map((e) => e.toJson()).toList(),
+    'cardio': cardio.map((e) => e.toJson()).toList(),
+    'dailyLogs': dailyLogs.map((e) => e.toJson()).toList(),
+    'skips': skips.map((e) => e.toJson()).toList(),
   };
 }
 

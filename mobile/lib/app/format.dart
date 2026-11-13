@@ -87,6 +87,7 @@ class Fmt {
   static String minutes(num m) {
     final total = m.round();
     if (total < 60) return t('unit.minValue', {'v': total});
+    if (total % 60 == 0) return t('unit.hValue', {'v': total ~/ 60});
     return t('unit.hMinValue', {'h': total ~/ 60, 'm': (total % 60).toString().padLeft(2, '0')});
   }
 

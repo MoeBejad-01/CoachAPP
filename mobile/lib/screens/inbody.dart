@@ -5,6 +5,10 @@
 import 'dart:convert';
 
 import 'package:cupertino_ui/cupertino_ui.dart';
+import 'package:file_picker/file_picker.dart';
+
+import 'dart:io';
+
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:material_ui/material_ui.dart';
@@ -13,8 +17,10 @@ import '../app/format.dart';
 import '../app/l10n.dart';
 import '../app/theme.dart';
 import '../data/models.dart';
+import '../data/report_reader.dart';
 import '../data/schedule.dart';
 import '../data/store.dart';
+import '../widgets/glyph.dart';
 import '../widgets/ui.dart';
 
 class InBodySheet extends StatefulWidget {
@@ -55,6 +61,14 @@ class _InBodySheetState extends State<InBodySheet> {
   String? _photoName;
   bool _tried = false;
 
+  /// A PDF report attached instead of a photo.
+  ({String name, String? dataUrl})? _pdf;
+
+  /// Fields filled in from the report (highlighted until edited).
+  final _filled = <String>{};
+  bool _reading = false;
+  String? _readNote;
+
   static const _required = ['weightKg', 'muscleKg', 'fatPct'];
 
   @override
@@ -85,9 +99,9 @@ class _InBodySheetState extends State<InBodySheet> {
     }
   }
 
-  Future<void> _pick(ImageSource source) async {
+  Future<void> _pick(ImageSource source, {bool read = false}) async {
     try {
-      final file = await ImagePicker().pickImage(source: source, maxWidth: 1600, maxHeight: 1600, imageQuality: 70);
+      final file = await ImagePicker().pickImage(source: source, maxWidth: 2000, maxHeight: 2000, imageQuality: 75);
       if (file == null) return;
       final bytes = await file.readAsBytes();
       if (bytes.length > 2 * 1024 * 1024) {
@@ -97,10 +111,56 @@ class _InBodySheetState extends State<InBodySheet> {
       setState(() {
         _photo = bytes;
         _photoName = file.name;
+        _pdf = null;
       });
+      if (read) await _fill(() => ReportReader.readImage(file.path));
     } on PlatformException {
       if (mounted) toast(context, t('inbody.photoError'));
     }
+  }
+
+  Future<void> _pickPdf() async {
+    try {
+      final f = await FilePicker.pickFile(type: FileType.custom, allowedExtensions: ['pdf']);
+      final path = f?.path;
+      if (f == null || path == null) return;
+      final bytes = await File(path).readAsBytes();
+      setState(() {
+        _photo = null;
+        _pdf = (name: f.name, dataUrl: bytes.length <= 1500 * 1024 ? 'data:application/pdf;base64,${base64Encode(bytes)}' : null);
+      });
+      await _fill(() => ReportReader.readPdf(path));
+    } on PlatformException {
+      if (mounted) toast(context, t('inbody.photoError'));
+    }
+  }
+
+  /// Reads the report and fills in the fields it found.
+  Future<void> _fill(Future<Map<String, double>> Function() read) async {
+    setState(() {
+      _reading = true;
+      _readNote = null;
+    });
+    Map<String, double> found = const {};
+    try {
+      found = await read();
+    } catch (_) {
+      found = const {};
+    }
+    if (!mounted) return;
+    setState(() {
+      _reading = false;
+      _filled.clear();
+      for (final e in found.entries) {
+        final f = _fields[e.key];
+        if (f == null) continue;
+        f.ctl.text = e.value.toStringAsFixed(f.decimals);
+        _filled.add(e.key);
+      }
+      _derive();
+      _readNote = found.isEmpty ? t('inbody.readNone') : t('inbody.readSome', {'n': found.length, 'total': _fields.length});
+    });
+    HapticFeedback.mediumImpact();
   }
 
   void _save() {
@@ -123,9 +183,9 @@ class _InBodySheetState extends State<InBodySheet> {
       bmr: v('bmr'),
       waterL: v('waterL'),
       score: v('score'),
-      fileName: _photo == null ? null : (_photoName ?? 'inbody.jpg'),
-      fileType: _photo == null ? null : 'image/jpeg',
-      dataUrl: _photo == null ? null : 'data:image/jpeg;base64,${base64Encode(_photo!)}',
+      fileName: _pdf?.name ?? (_photo == null ? null : (_photoName ?? 'inbody.jpg')),
+      fileType: _pdf != null ? 'application/pdf' : (_photo == null ? null : 'image/jpeg'),
+      dataUrl: _pdf != null ? _pdf!.dataUrl : (_photo == null ? null : 'data:image/jpeg;base64,${base64Encode(_photo!)}'),
     );
     context.store.addInBody(scan);
     HapticFeedback.heavyImpact();
@@ -148,6 +208,83 @@ class _InBodySheetState extends State<InBodySheet> {
           Text(t('inbody.title'), style: context.text.headlineSmall),
           const SizedBox(height: 4),
           Text(t('inbody.sub'), style: context.text.bodyMedium?.copyWith(color: c.muted)),
+          const SizedBox(height: 16),
+          AppCard(
+            gradient: Tokens.brandGradient,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(13)),
+                      child: const Icon(Sym.scan, color: Colors.white, size: 26),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(t('inbody.scanTitle'), style: context.text.titleMedium?.copyWith(color: Colors.white)),
+                          Text(t('inbody.scanSub'), style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                if (_reading)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(8),
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                    ),
+                  )
+                else
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _ScanButton(
+                          icon: CupertinoIcons.camera_fill,
+                          label: t('inbody.photoCamera'),
+                          onTap: () => _pick(ImageSource.camera, read: true),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _ScanButton(
+                          icon: CupertinoIcons.photo_fill,
+                          label: t('inbody.photoLibrary'),
+                          onTap: () => _pick(ImageSource.gallery, read: true),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _ScanButton(icon: CupertinoIcons.doc_fill, label: t('inbody.pdf'), onTap: _pickPdf),
+                      ),
+                    ],
+                  ),
+                if (_readNote != null) ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(_filled.isEmpty ? CupertinoIcons.exclamationmark_circle_fill : CupertinoIcons.checkmark_circle_fill, size: 16, color: Colors.white),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          _readNote!,
+                          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
           if (widget.request != null) ...[
             const SizedBox(height: 14),
             AppCard(
@@ -192,14 +329,7 @@ class _InBodySheetState extends State<InBodySheet> {
             ),
           ),
           const SizedBox(height: 14),
-          GridView.count(
-            padding: EdgeInsets.zero,
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 2.05,
+          _Pairs(
             children: [
               for (final e in _fields.entries)
                 TextField(
@@ -210,7 +340,12 @@ class _InBodySheetState extends State<InBodySheet> {
                     setState(_derive);
                     FocusScope.of(context).nextFocus();
                   },
+                  onChanged: (_) {
+                    if (_filled.remove(e.key)) setState(() {});
+                  },
                   decoration: InputDecoration(
+                    fillColor: _filled.contains(e.key) ? c.successSoft : null,
+                    prefixIcon: _filled.contains(e.key) ? Icon(CupertinoIcons.sparkles, size: 16, color: c.success) : null,
                     labelText: t(e.value.key) + (_required.contains(e.key) ? ' *' : ''),
                     suffixText: e.value.unit.isEmpty ? null : e.value.unit,
                     errorText: _tried && _required.contains(e.key) && e.value.value == null ? t('inbody.required') : null,
@@ -221,7 +356,25 @@ class _InBodySheetState extends State<InBodySheet> {
           const SizedBox(height: 16),
           Text(t('inbody.report'), style: context.text.titleSmall),
           const SizedBox(height: 8),
-          if (_photo != null)
+          if (_pdf != null)
+            AppCard(
+              padding: const EdgeInsets.fromLTRB(14, 10, 6, 10),
+              child: Row(
+                children: [
+                  Icon(CupertinoIcons.doc_fill, color: c.error),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(_pdf!.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: context.text.titleSmall),
+                  ),
+                  IconButton(
+                    tooltip: t('common.remove'),
+                    onPressed: () => setState(() => _pdf = null),
+                    icon: Icon(CupertinoIcons.xmark_circle_fill, color: c.faint),
+                  ),
+                ],
+              ),
+            )
+          else if (_photo != null)
             Stack(
               children: [
                 ClipRRect(
@@ -258,4 +411,54 @@ class _InBodySheetState extends State<InBodySheet> {
       ),
     );
   }
+}
+
+class _ScanButton extends StatelessWidget {
+  const _ScanButton({required this.icon, required this.label, required this.onTap});
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) => Pressable(
+    onTap: onTap,
+    child: Container(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+      child: Column(
+        children: [
+          Icon(icon, color: Tokens.brand, size: 22),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Tokens.brand, fontWeight: FontWeight.w700, fontSize: 13),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+/// Two fields per row, each row as tall as its tallest field (so an error
+/// message under one field doesn't leave a gap everywhere else).
+class _Pairs extends StatelessWidget {
+  const _Pairs({required this.children});
+  final List<Widget> children;
+  @override
+  Widget build(BuildContext context) => Column(
+    children: [
+      for (var i = 0; i < children.length; i += 2) ...[
+        if (i > 0) const SizedBox(height: 12),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: children[i]),
+            const SizedBox(width: 12),
+            Expanded(child: i + 1 < children.length ? children[i + 1] : const SizedBox()),
+          ],
+        ),
+      ],
+    ],
+  );
 }

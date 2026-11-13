@@ -55,15 +55,28 @@ class DayPlan {
   final WorkoutLog? log;
   final bool isCheckin, checkinDone;
 
+  /// The planned session was trained on another day this week.
+  String? doneOn;
+
+  /// The trainee skipped this session (with a reason for the coach).
+  SkippedSession? skip;
+
   bool get isToday => date == Day.today;
   bool get isPast => date.compareTo(Day.today) < 0;
-  bool get missed => isPast && planned != null && log == null;
+  bool get done => doneOn != null || (log != null && planned != null && sameSession(log!, planned!));
+
+  /// Planned, in the past and not trained yet: still to catch up this week.
+  bool get missed => isPast && planned != null && !done && skip == null;
 }
 
+bool sameSession(WorkoutLog l, ProgramDay d) => l.dayId != null ? l.dayId == d.id : l.dayName == d.name;
+
+/// The week, Monday first. Training days are flexible: a session trained on
+/// another day (the day after, say) counts for the day it was planned.
 List<DayPlan> weekPlan(Snapshot s, [String? weekStart]) {
   final start = weekStart ?? Day.startOfWeek(Day.today);
   final t = s.trainee;
-  return List.generate(7, (i) {
+  final days = List.generate(7, (i) {
     final date = Day.add(start, i);
     WorkoutLog? log;
     for (final l in s.logs) {
@@ -71,6 +84,34 @@ List<DayPlan> weekPlan(Snapshot s, [String? weekStart]) {
     }
     return DayPlan(date, plannedOn(t, date), log, Day.dow(date) == t.checkinDay, s.checkins.any((c) => c.date == date));
   });
+  final claimed = {
+    for (final d in days)
+      if (d.log != null && d.planned != null && sameSession(d.log!, d.planned!)) d.log!.id,
+  };
+  for (final d in days) {
+    if (d.planned == null || d.done) continue;
+    for (final other in days) {
+      final l = other.log;
+      if (l != null && !claimed.contains(l.id) && sameSession(l, d.planned!)) {
+        claimed.add(l.id);
+        d.doneOn = l.date;
+        break;
+      }
+    }
+    if (!d.done) d.skip = s.skips.where((k) => k.weekStart == start && k.dayId == d.planned!.id).firstOrNull;
+  }
+  return days;
+}
+
+/// What to train next this week: the first planned session not done yet,
+/// whatever day it was planned for. Null when the week is complete.
+({String plannedFor, ProgramDay day, bool overdue})? upNext(Snapshot s) {
+  for (final d in weekPlan(s)) {
+    if (d.planned != null && !d.done && d.skip == null && d.log?.date != Day.today) {
+      return (plannedFor: d.date, day: d.planned!, overdue: d.isPast);
+    }
+  }
+  return null;
 }
 
 /// The next planned session after today.
@@ -82,6 +123,40 @@ List<DayPlan> weekPlan(Snapshot s, [String? weekStart]) {
   }
   return null;
 }
+
+// ---------- Cardio ----------
+
+final _cardioWords = RegExp(
+  r'\b(bike|sprint|sprints|rower|rowing|run|running|jog|walk|sled|treadmill|elliptical|stairs?|stepper|swim|cycling|erg|skipping|jump rope)\b',
+);
+
+/// Cardio exercises log time and distance instead of weight × reps.
+bool isCardioExercise(String name) {
+  final n = name.toLowerCase();
+  if (n.contains('lunge') || n.contains('row ') && !n.contains('rower')) return false;
+  return _cardioWords.hasMatch(n);
+}
+
+/// Minutes from a prescription like "20 min", "6 × 20 s" or "2 km" (best guess).
+double cardioMinutes(Exercise e) {
+  final r = e.reps.toLowerCase();
+  final m = RegExp(r'(\d+(?:\.\d+)?)\s*(min|m\b)').firstMatch(r);
+  if (m != null) return double.parse(m.group(1)!);
+  final sec = RegExp(r'(\d+)\s*s').firstMatch(r);
+  if (sec != null) return ((int.parse(sec.group(1)!) * e.sets) / 60).clamp(1, 120).ceilToDouble();
+  return 10;
+}
+
+/// Cardio minutes per day of this week (sessions plus cardio inside workouts).
+double cardioMinutesBetween(Snapshot s, String from, String to) {
+  bool inside(String d) => d.compareTo(from) >= 0 && d.compareTo(to) <= 0;
+  final own = s.cardio.where((c) => inside(c.date)).fold(0.0, (a, c) => a + c.detail.minutes);
+  final inWorkouts = s.logs.where((l) => inside(l.date)).expand((l) => l.entries).fold(0.0, (a, e) => a + (e.cardio?.minutes ?? 0));
+  return own + inWorkouts;
+}
+
+/// The WHO's guideline for adults: 150 minutes of moderate activity a week.
+const weeklyCardioGoal = 150.0;
 
 /// Sessions logged ÷ sessions expected over the last four weeks.
 int? adherence(Snapshot s, {int windowDays = 28}) {
@@ -257,12 +332,13 @@ Map<MuscleGroup, double> musclesFor(String exercise) {
   if (has(['squat', 'leg press', 'lunge', 'step-up', 'step up', 'box jump', 'sled', 'leg extension'])) return {l: 1, g: 0.6};
   if (has(['sprint', 'bike', 'incline walk', 'run'])) return {l: 0.5};
   if (has(['rower'])) return {l: 0.4, b: 0.4};
+  // Rows before chest: "Chest-supported row" is a back exercise.
+  if (has(['pull-up', 'pull up', 'chin-up', 'chin up', 'pulldown', 'row', 'pullover', 'shrug'])) return {b: 1, a: 0.5};
   if (has(['close-grip', 'close grip', 'dip'])) return {c: 0.7, a: 0.8, sh: 0.3};
   if (has(['bench', 'push-up', 'push up', 'chest', 'fly', 'incline db press', 'incline press'])) return {c: 1, a: 0.5, sh: 0.4};
   if (has(['lateral raise', 'rear delt'])) return {sh: 1};
   if (has(['overhead', 'shoulder press', 'military', 'arnold', 'landmine press'])) return {sh: 1, a: 0.4};
   if (has(['pull-apart', 'pull apart', 'face pull'])) return {sh: 0.7, b: 0.5};
-  if (has(['pull-up', 'pull up', 'chin-up', 'chin up', 'pulldown', 'row', 'pullover', 'shrug'])) return {b: 1, a: 0.5};
   if (has(['curl', 'tricep', 'pushdown', 'skull', 'extension'])) return {a: 1};
   if (has(['plank', 'dead bug', 'crunch', 'pallof', 'ball', 'toss', 'core', 'carry', 'hollow', 'sit-up', 'twist', 'leg raise', ' ab'])) return {co: 1};
   return const {};

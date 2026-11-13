@@ -178,11 +178,7 @@ class _LinePainter extends CustomPainter {
 
     // Smooth line through the points, revealed left to right.
     final pts = [for (var i = 0; i < points.length; i++) at(i, points[i].value)];
-    final line = Path()..moveTo(pts.first.dx, pts.first.dy);
-    for (var i = 1; i < pts.length; i++) {
-      final p0 = pts[math.max(0, i - 2)], p1 = pts[i - 1], p2 = pts[i], p3 = pts[math.min(pts.length - 1, i + 1)];
-      line.cubicTo(p1.dx + (p2.dx - p0.dx) / 6, p1.dy + (p2.dy - p0.dy) / 6, p2.dx - (p3.dx - p1.dx) / 6, p2.dy - (p3.dy - p1.dy) / 6, p2.dx, p2.dy);
-    }
+    final line = monotonePath(pts);
     canvas.save();
     canvas.clipRect(Rect.fromLTWH(0, 0, _ChartGeom.padL + w * t + 4, size.height));
     final area = Path.from(line)
@@ -332,4 +328,43 @@ class _SparkPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_SparkPainter old) => old.values != values || old.color != color;
+}
+
+/// A smooth line through [pts] (left to right) that never bulges above or
+/// below the real values between two points (monotone cubic, Steffen's
+/// method), so a flat week doesn't look like it dipped.
+Path monotonePath(List<Offset> pts) {
+  final path = Path()..moveTo(pts.first.dx, pts.first.dy);
+  final n = pts.length;
+  if (n < 3) {
+    for (final p in pts.skip(1)) {
+      path.lineTo(p.dx, p.dy);
+    }
+    return path;
+  }
+  double slope(int i) {
+    final h = pts[i + 1].dx - pts[i].dx;
+    return h == 0 ? 0 : (pts[i + 1].dy - pts[i].dy) / h;
+  }
+
+  final m = List<double>.filled(n, 0);
+  for (var i = 1; i < n - 1; i++) {
+    final h0 = pts[i].dx - pts[i - 1].dx, h1 = pts[i + 1].dx - pts[i].dx;
+    final s0 = slope(i - 1), s1 = slope(i);
+    if (s0 * s1 <= 0 || h0 + h1 == 0) continue;
+    final p = (s0 * h1 + s1 * h0) / (h0 + h1);
+    m[i] = s0.sign * math.min(math.min(s0.abs(), s1.abs()), 0.5 * p.abs()) * 2;
+  }
+  m[0] = (3 * slope(0) - m[1]) / 2;
+  m[n - 1] = (3 * slope(n - 2) - m[n - 2]) / 2;
+  // Keep the end tangents from pointing past the next point.
+  if (m[0] * slope(0) < 0) m[0] = 0;
+  if (m[n - 1] * slope(n - 2) < 0) m[n - 1] = 0;
+
+  for (var i = 0; i < n - 1; i++) {
+    final a = pts[i], b = pts[i + 1];
+    final dx = (b.dx - a.dx) / 3;
+    path.cubicTo(a.dx + dx, a.dy + dx * m[i], b.dx - dx, b.dy - dx * m[i + 1], b.dx, b.dy);
+  }
+  return path;
 }

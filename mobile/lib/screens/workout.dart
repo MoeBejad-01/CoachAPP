@@ -16,8 +16,11 @@ import '../data/models.dart';
 import '../data/schedule.dart';
 import '../data/store.dart';
 import '../widgets/anatomy_shapes.dart';
+import '../widgets/glyph.dart';
 import '../widgets/muscle_map.dart';
 import '../widgets/ui.dart';
+import 'cardio.dart' show cardioLine;
+import 'technique.dart';
 import 'train.dart';
 
 class WorkoutScreen extends StatefulWidget {
@@ -106,7 +109,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
         if (d == null) return const Scaffold();
         final c = context.c;
         final elapsed = DateTime.now().difference(d.startedAt).inSeconds;
-        final currentIdx = d.exercises.indexWhere((e) => e.done < e.sets.length);
+        final currentIdx = d.exercises.indexWhere((e) => e.done < e.total);
         final bottom = MediaQuery.paddingOf(context).bottom;
         return PopScope(
           canPop: false,
@@ -234,6 +237,7 @@ class _ExerciseLogger extends StatelessWidget {
       }
       return a;
     });
+    if (e.cardio) return _CardioLogger(e: e, current: current, onChanged: onChanged);
     final complete = e.done == e.sets.length;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
@@ -268,7 +272,8 @@ class _ExerciseLogger extends StatelessWidget {
                   ],
                 ),
               ),
-              if (complete) Icon(CupertinoIcons.checkmark_seal_fill, color: c.success, size: 24),
+              TechniqueButton(name: e.name, exercise: target),
+              if (complete) ...[const SizedBox(width: 6), Icon(CupertinoIcons.checkmark_seal_fill, color: c.success, size: 24)],
             ],
           ),
           if (target != null && target.cue.isNotEmpty && current) ...[
@@ -386,6 +391,118 @@ class _ExerciseLogger extends StatelessWidget {
                 },
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A cardio exercise inside a workout: minutes and distance, then done.
+class _CardioLogger extends StatefulWidget {
+  const _CardioLogger({required this.e, required this.current, required this.onChanged});
+  final DraftExercise e;
+  final bool current;
+  final VoidCallback onChanged;
+  @override
+  State<_CardioLogger> createState() => _CardioLoggerState();
+}
+
+class _CardioLoggerState extends State<_CardioLogger> {
+  late final _km = TextEditingController(text: widget.e.distanceKm == null ? '' : Fmt.number(widget.e.distanceKm!, digits: 2));
+
+  @override
+  void dispose() {
+    _km.dispose();
+    super.dispose();
+  }
+
+  void _minutes(double by) {
+    final e = widget.e;
+    e.minutes = ((e.minutes ?? 10) + by).clamp(1, 300).toDouble();
+    HapticFeedback.selectionClick();
+    widget.onChanged();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    final e = widget.e;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      decoration: BoxDecoration(
+        color: c.surface,
+        borderRadius: BorderRadius.circular(Tokens.r),
+        border: Border.all(
+          color: widget.current ? c.success.withValues(alpha: 0.7) : (c.dark ? c.hairline : Colors.transparent),
+          width: widget.current ? 1.5 : 1,
+        ),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(e.name, style: context.text.titleMedium),
+                    const SizedBox(height: 3),
+                    Row(
+                      children: [
+                        Icon(Sym.heart, size: 14, color: Tone.pink.color),
+                        const SizedBox(width: 4),
+                        Text([t('cardio.title'), if (e.target != null) ltr(e.target!.reps)].join(' · '), style: context.text.bodySmall),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              TechniqueButton(name: e.name, exercise: e.target),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _Step(icon: CupertinoIcons.minus, onTap: () => _minutes(-1)),
+              Expanded(
+                child: Column(
+                  children: [
+                    Text(Fmt.minutes(e.minutes ?? 10), style: context.text.headlineSmall),
+                    Text(t('cardio.minutes'), style: context.text.bodySmall),
+                  ],
+                ),
+              ),
+              _Step(icon: CupertinoIcons.plus, onTap: () => _minutes(1)),
+              const SizedBox(width: 10),
+              SizedBox(
+                width: 110,
+                child: TextField(
+                  controller: _km,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [_LatinNumber(decimal: true)],
+                  textAlign: TextAlign.center,
+                  decoration: InputDecoration(isDense: true, hintText: t('cardio.distanceShort'), suffixText: 'km'),
+                  onChanged: (v) {
+                    e.distanceKm = double.tryParse(v);
+                    context.store.saveDraft();
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SecondaryButton(
+            e.cardioDone ? t('cardio.doneTap') : t('cardio.markDone'),
+            icon: e.cardioDone ? CupertinoIcons.checkmark_seal_fill : CupertinoIcons.checkmark_alt,
+            color: c.success,
+            onPressed: () {
+              e.cardioDone = !e.cardioDone;
+              if (e.cardioDone) HapticFeedback.mediumImpact();
+              widget.onChanged();
+            },
+          ),
         ],
       ),
     );
@@ -913,7 +1030,10 @@ class LogSheet extends StatelessWidget {
                   Wrap(
                     spacing: 6,
                     runSpacing: 6,
-                    children: [for (final s in e.sets) Pill(setLabel(s), background: c.surface2, color: c.text)],
+                    children: [
+                      for (final s in e.sets) Pill(setLabel(s), background: c.surface2, color: c.text),
+                      if (e.cardio != null) Pill(cardioLine(e.cardio!), icon: Sym.heart, background: c.successSoft, color: c.text),
+                    ],
                   ),
                   if (e.note != null && e.note!.isNotEmpty) ...[
                     const SizedBox(height: 8),

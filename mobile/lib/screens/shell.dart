@@ -14,13 +14,15 @@ import '../data/schedule.dart';
 import '../data/store.dart';
 import '../widgets/ui.dart';
 import 'coach.dart';
+import 'assistant.dart';
+import 'body.dart';
 import 'me.dart';
 import 'progress.dart';
 import 'today.dart';
 import 'train.dart';
 import 'workout.dart';
 
-enum AppTab { today, train, progress, coach, me }
+enum AppTab { today, train, body, progress, coach }
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -49,9 +51,9 @@ class _AppShellState extends State<AppShell> {
   Widget _page(AppTab t) => switch (t) {
     AppTab.today => const TodayScreen(),
     AppTab.train => const TrainScreen(),
+    AppTab.body => const BodyScreen(),
     AppTab.progress => const ProgressScreen(),
     AppTab.coach => const CoachScreen(),
-    AppTab.me => const MeScreen(),
   };
 
   @override
@@ -106,11 +108,11 @@ class _TabBar extends StatelessWidget {
         final c = context.c;
         final unread = unseenFromCoach(context.store.s);
         final items = [
-          (AppTab.today, CupertinoIcons.sun_max, CupertinoIcons.sun_max_fill, t('tab.today')),
-          (AppTab.train, CupertinoIcons.flame, CupertinoIcons.flame_fill, t('tab.train')),
-          (AppTab.progress, CupertinoIcons.chart_bar_alt_fill, CupertinoIcons.chart_bar_alt_fill, t('tab.progress')),
-          (AppTab.coach, CupertinoIcons.chat_bubble_2, CupertinoIcons.chat_bubble_2_fill, t('tab.coach')),
-          (AppTab.me, CupertinoIcons.person_crop_circle, CupertinoIcons.person_crop_circle_fill, t('tab.me')),
+          (AppTab.today, Icons.wb_sunny_outlined, Icons.wb_sunny_rounded, t('tab.today')),
+          (AppTab.train, Icons.fitness_center_outlined, Icons.fitness_center_rounded, t('tab.train')),
+          (AppTab.body, Icons.accessibility_new_outlined, Icons.accessibility_new_rounded, t('tab.body')),
+          (AppTab.progress, Icons.insights_outlined, Icons.insights_rounded, t('tab.progress')),
+          (AppTab.coach, Icons.forum_outlined, Icons.forum_rounded, t('tab.coach')),
         ];
         return ClipRect(
           child: BackdropFilter(
@@ -142,10 +144,17 @@ class _TabBar extends StatelessWidget {
                                     isLabelVisible: tab == AppTab.coach && unread > 0,
                                     label: Text('$unread'),
                                     backgroundColor: c.error,
-                                    child: AnimatedScale(
-                                      scale: tab == current ? 1.08 : 1,
-                                      duration: const Duration(milliseconds: 180),
-                                      child: Icon(tab == current ? active : icon, size: 24, color: tab == current ? c.primary : c.faint),
+                                    // The current tab sits in a soft capsule.
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 220),
+                                      curve: Curves.easeOutCubic,
+                                      width: tab == current ? 56 : 40,
+                                      height: 30,
+                                      decoration: BoxDecoration(
+                                        color: tab == current ? c.primarySoft : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(99),
+                                      ),
+                                      child: Icon(tab == current ? active : icon, size: 23, color: tab == current ? c.primary : c.faint),
                                     ),
                                   ),
                                   const SizedBox(height: 3),
@@ -235,7 +244,10 @@ class _ResumeBar extends StatelessWidget {
 /// Large-title page scaffold used by every tab: a title that scrolls away,
 /// pull to refresh, and room at the bottom for the tab bar.
 class TabPage extends StatelessWidget {
-  const TabPage({super.key, required this.title, required this.children, this.subtitle, this.trailing, this.leading});
+  const TabPage({super.key, required this.title, required this.children, this.subtitle, this.trailing, this.leading, this.actions = true});
+
+  /// Show the assistant and profile buttons in the header.
+  final bool actions;
   final String title;
   final String? subtitle;
   final Widget? trailing, leading;
@@ -274,6 +286,7 @@ class TabPage extends StatelessWidget {
                             ),
                           ),
                           ?trailing,
+                          if (actions) ...[const SizedBox(width: 8), const AssistantButton(), const SizedBox(width: 8), const ProfileButton()],
                         ],
                       ),
                     ),
@@ -385,6 +398,20 @@ class _PulseState extends State<_Pulse> with SingleTickerProviderStateMixin {
           ),
         ],
       ),
+    ),
+  );
+}
+
+/// The trainee's initials; opens Me (profile and settings).
+class ProfileButton extends StatelessWidget {
+  const ProfileButton({super.key});
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: t('tab.me'),
+    child: Pressable(
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MeScreen())),
+      child: Avatar(context.store.s.trainee.initials, size: 38),
     ),
   );
 }

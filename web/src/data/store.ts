@@ -36,6 +36,9 @@ function repair(s: AppState): AppState {
     // Workspaces saved before InBody tracking get the demo scans so the page isn't empty.
     ...(s.inbody ? {} : (({ inbody, inbodyRequests }) => ({ inbody, inbodyRequests }))(createSeed())),
     metricEntries: s.metricEntries ?? [],
+    cardio: s.cardio ?? [],
+    dailyLogs: s.dailyLogs ?? [],
+    skips: s.skips ?? [],
     trainees: s.trainees.map((t) => (t.program ? { ...t, program: migrateProgram(t.program, t, latestKg(s.weights, t.id)) } : t)),
   };
 }
@@ -71,8 +74,9 @@ export function resetState() {
   replaceRemote(state);
 }
 
-// Share the workspace with the local sync API (and so with the iOS app).
-startSync({ get: getState, adopt: set, version: STATE_VERSION });
+// Share the workspace with the local sync API (and so with the mobile app).
+// A workspace saved before cardio and daily logs existed gets empty lists.
+startSync({ get: getState, adopt: (s) => set({ ...s, cardio: s.cardio ?? [], dailyLogs: s.dailyLogs ?? [], skips: s.skips ?? [] }), version: STATE_VERSION });
 
 function subscribe(listener: () => void) {
   listeners.add(listener);

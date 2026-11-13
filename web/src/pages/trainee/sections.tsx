@@ -13,7 +13,7 @@ import { Bar, Card, Empty, Modal, useToast } from '../../components/ui';
 import { useT } from '../../i18n';
 import type { StringKey } from '../../i18n/strings';
 import { fmtDay, fmtDow, fmtRelativeDay, fmtShort, fmtStamp, todayISO, weekdayName } from '../../lib/dates';
-import { e1rm, fmtKg } from '../../lib/util';
+import { e1rm, fmtHours, fmtKg } from '../../lib/util';
 import type { TabId } from '../Trainee';
 import { CardBuilderModal } from './cardBuilder';
 import { GoalsModal } from './modals';
@@ -203,6 +203,10 @@ function WeekCard({ trainee, stats }: SectionProps) {
         if (d.log) {
           label = d.log.dayName;
           chip = <span className="chip ok">{t('week.completed')}{d.log.entries.some((e) => e.pain) ? ` · ${t('week.pain')}` : ''}</span>;
+        } else if (d.planned && d.skipped) {
+          chip = <span className="chip warn" title={d.skipped.note}>{t('week.skippedChip', { reason: t(`skip.reason.${d.skipped.reason}` as 'skip.reason.busy') })}</span>;
+        } else if (d.planned && d.doneOn) {
+          chip = <span className="chip ok">{t('week.doneOn', { day: fmtDow(d.doneOn) })}</span>;
         } else if (d.planned) {
           chip = past ? <span className="chip warn">{t('week.missed')}</span> : d.date === today ? <span className="chip accent">{t('week.plannedToday')}</span> : <span className="chip">{t('week.planned')}</span>;
         }
@@ -252,7 +256,7 @@ function CheckinCard({ stats, goTab }: SectionProps) {
       {c ? (
         <div className="card-body">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 10 }}>
-            {[[t('checkin.sleep'), `${c.sleepH} h`], [t('checkin.energy'), `${c.energy} / 5`], [t('checkin.stress'), `${c.stress} / 5`], [t('checkin.soreness'), `${c.soreness} / 5`]].map(([k, v]) => (
+            {[[t('checkin.sleep'), fmtHours(c.sleepH)], [t('checkin.energy'), `${c.energy} / 5`], [t('checkin.stress'), `${c.stress} / 5`], [t('checkin.soreness'), `${c.soreness} / 5`]].map(([k, v]) => (
               <div key={k} className="stack" style={{ border: '1px solid var(--divider)', borderRadius: 8, padding: '10px 12px' }}>
                 <span className="xs faint">{k}</span><span className="mono" style={{ fontWeight: 500 }} dir="ltr">{v}</span>
               </div>

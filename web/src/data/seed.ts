@@ -276,6 +276,9 @@ export function createSeed(): AppState {
     traineeLayout: defaultLayout(),
     ...seedInBody(trainees, weights, today, rand),
     metricEntries: [],
+    cardio: [],
+    dailyLogs: [],
+    skips: [],
     widgets: { kpis: true, attention: true, sessions: true, messages: true, roster: true, adherence: true, prs: true, renewals: false },
   };
 }

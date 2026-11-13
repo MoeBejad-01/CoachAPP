@@ -8,7 +8,7 @@ import type { AppState } from './types';
 
 export const COLLECTIONS = [
   'trainees', 'templates', 'logs', 'weights', 'checkins', 'notes', 'messages',
-  'sessions', 'inbody', 'inbodyRequests', 'metricEntries',
+  'sessions', 'inbody', 'inbodyRequests', 'metricEntries', 'cardio', 'dailyLogs', 'skips',
 ] as const;
 export const FIELDS = ['version', 'coach', 'widgets', 'traineeLayout'] as const;
 
@@ -22,10 +22,10 @@ export interface Patch {
   remove: { [K in Collection]?: string[] };
 }
 
-/** Weigh-ins have no id: one per trainee per day. */
+/** Weigh-ins and daily logs have no id: one per trainee per day. */
 export function keyOf(k: Collection, item: object): string {
   const r = item as { id?: string; traineeId?: string; date?: string };
-  return k === 'weights' ? `${r.traineeId}|${r.date}` : String(r.id);
+  return k === 'weights' || k === 'dailyLogs' ? `${r.traineeId}|${r.date}` : String(r.id);
 }
 
 const same = (a: unknown, b: unknown) => a === b || JSON.stringify(a) === JSON.stringify(b);
@@ -80,7 +80,7 @@ function settle(k: Collection, old: object | undefined, next: object): object {
   return next;
 }
 
-const BY_DATE: Partial<Record<Collection, true>> = { logs: true, inbody: true };
+const BY_DATE: Partial<Record<Collection, true>> = { logs: true, inbody: true, cardio: true };
 
 export function applyPatch(state: AppState, p: Patch): AppState {
   const out = { ...state, ...p.set } as AppState;

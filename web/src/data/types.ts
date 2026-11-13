@@ -13,6 +13,8 @@ export interface Exercise {
   intensity: string;
   rest: string;
   cue: string;
+  /** Technique video link, shown to the trainee in the app. */
+  video?: string;
 }
 
 export interface ProgramDay {
@@ -103,10 +105,20 @@ export interface LoggedSet {
   reps: number;
 }
 
+/** Cardio done as part of a workout or on its own. */
+export interface CardioDetail {
+  minutes: number;
+  distanceKm?: number;
+  kcal?: number;
+  avgHr?: number;
+}
+
 export interface LogEntry {
   exerciseId: string;
   exerciseName: string;
   sets: LoggedSet[];
+  /** Cardio exercises log time and distance instead of sets. */
+  cardio?: CardioDetail;
   note?: string;
   pain?: boolean;
 }
@@ -119,6 +131,62 @@ export interface WorkoutLog {
   durationMin: number;
   rpe: number;
   entries: LogEntry[];
+  /** The program day this session was for (it may be done on a different day). */
+  dayId?: string;
+}
+
+export type CardioActivity = 'walk' | 'run' | 'cycle' | 'swim' | 'row' | 'elliptical' | 'stairs' | 'hiit' | 'sport' | 'other';
+
+/** A cardio session logged on its own in the trainee app. */
+export interface CardioSession extends CardioDetail {
+  id: string;
+  traineeId: string;
+  date: string;
+  activity: CardioActivity;
+  /** 1 easy, 2 moderate, 3 hard. */
+  effort: number;
+  note?: string;
+}
+
+export interface Meal {
+  id: string;
+  type: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+  text: string;
+  kcal?: number;
+  proteinG?: number;
+}
+
+export type SkipReason = 'sick' | 'busy' | 'travel' | 'sore' | 'motivation' | 'other';
+
+/** A planned session the trainee chose to skip this week, and why. */
+export interface SkippedSession {
+  id: string;
+  traineeId: string;
+  /** Monday of the week it was planned in. */
+  weekStart: string;
+  /** The day it was planned for. */
+  date: string;
+  dayId: string;
+  dayName: string;
+  reason: SkipReason;
+  note?: string;
+  at: string;
+}
+
+/** What the trainee tracks day to day in the app (one per trainee per day). */
+export interface DailyLog {
+  traineeId: string;
+  date: string;
+  sleepH?: number;
+  waterMl?: number;
+  steps?: number;
+  /** 1–5 */
+  stress?: number;
+  /** 1–5 */
+  soreness?: number;
+  /** Muscle groups that feel sore. */
+  sorenessAreas?: string[];
+  meals: Meal[];
 }
 
 export interface WeightEntry {
@@ -306,4 +374,7 @@ export interface AppState {
   inbody: InBodyScan[];
   inbodyRequests: InBodyRequest[];
   metricEntries: MetricEntry[];
+  cardio: CardioSession[];
+  dailyLogs: DailyLog[];
+  skips: SkippedSession[];
 }

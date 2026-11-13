@@ -5,7 +5,7 @@ import { addDays, dayOfWeek, daysBetween, startOfWeek, todayISO } from '../lib/d
 import { e1rm } from '../lib/util';
 import { daysOn } from './plan';
 import { WEEKDAY_SLOTS } from './seed';
-import type { AppState, CheckIn, Message, ProgramDay, Trainee, WorkoutLog } from './types';
+import type { AppState, CheckIn, Message, ProgramDay, SkippedSession, Trainee, WorkoutLog } from './types';
 
 export type RosterGroup = 'active' | 'attention' | 'onboarding' | 'paused' | 'inactive';
 
@@ -196,13 +196,19 @@ export interface WeekDayPlan {
   log: WorkoutLog | undefined;
   isCheckin: boolean;
   checkinDone: boolean;
+  /** The planned session was done on another day this week (training days are flexible). */
+  doneOn?: string;
+  /** The trainee skipped this session in the app. */
+  skipped?: SkippedSession;
 }
 
 const pick = (days: ProgramDay[], slot: number) => (days.length ? days[slot % days.length] : null);
 
+const sameSession = (l: WorkoutLog, d: ProgramDay) => (l.dayId ? l.dayId === d.id : l.dayName === d.name);
+
 export function weekPlan(state: AppState, t: Trainee, logs: WorkoutLog[], weekStart = startOfWeek(todayISO())): WeekDayPlan[] {
   const slots = slotsFor(t);
-  return Array.from({ length: 7 }, (_, i) => {
+  const days: WeekDayPlan[] = Array.from({ length: 7 }, (_, i) => {
     const date = addDays(weekStart, i);
     const slot = slots.indexOf(dayOfWeek(date));
     const started = t.program && t.program.startDate <= date;
@@ -214,6 +220,19 @@ export function weekPlan(state: AppState, t: Trainee, logs: WorkoutLog[], weekSt
       checkinDone: state.checkins.some((c) => c.traineeId === t.id && c.date === date),
     };
   });
+  // A session trained on another day this week (say, the day after) counts for its planned day.
+  const claimed = new Set(days.filter((d) => d.log && d.planned && sameSession(d.log, d.planned)).map((d) => d.log!.id));
+  for (const d of days) {
+    if (!d.planned || (d.log && sameSession(d.log, d.planned))) continue;
+    const moved = days.map((x) => x.log).find((l) => l && !claimed.has(l.id) && sameSession(l, d.planned!));
+    if (moved) {
+      claimed.add(moved.id);
+      d.doneOn = moved.date;
+    } else {
+      d.skipped = (state.skips ?? []).find((k) => k.traineeId === t.id && k.weekStart === weekStart && k.dayId === d.planned!.id);
+    }
+  }
+  return days;
 }
 
 export function sessionsPerWeek(logs: WorkoutLog[], weeks = 6): { weekStart: string; count: number }[] {
